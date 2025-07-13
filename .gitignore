@@ -1,3 +1,8 @@
+#from the repo owners
+*.vscode
+.vscode
+client
+server
 # Prerequisites
 *.d
 
