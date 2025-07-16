@@ -14,10 +14,9 @@ SimpleSocket::SimpleSocket(int domain, int type, int protocol, int port, u_long 
     serverAddress.sin_addr.s_addr = interface;
 
     // only 127.0.0.1
-    // if(inet_pton(AF_INET, "127.0.0.1", &serverAddress.sin_addr)<=0)
+    // if(inet_pton(AF_INET, "127.0.0.4", &serverAddress.sin_addr)<=0)
     // {
     //     printf("\nInvalid address/ Address not supported \n");
-    //     return -1;
     // }
 
     bind(socket_fd,(struct sockaddr *)&serverAddress, sizeof(serverAddress));

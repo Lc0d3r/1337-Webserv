@@ -8,6 +8,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <map>
+#include <sstream>  // for std::istringstream
+#include <string>
 
 #define PORT 8080
 

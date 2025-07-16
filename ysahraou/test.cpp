@@ -1,4 +1,5 @@
 #include "sockets.hpp"
+#include "HttpRequest.hpp"
 
 int main() {
 
@@ -22,19 +23,29 @@ int main() {
             perror("In accept");            
             exit(EXIT_FAILURE);        
         }
-        std::cout << my_socket.get_serverAddress().sin_addr.s_addr << std::endl ;
-        std::cout << my_socket.get_socket_fd() << std::endl ;
 
+        std::string request_data;
+        char buffer[20] = {0};
 
-        char buffer[1024] = {0};
-        int valread = read(new_socket , buffer, 1024); 
-        printf("%s\n",buffer );
-        if(valread < 0)
-        { 
-            printf("No bytes are there to read");
+        while (request_data.find("\r\n\r\n") == std::string::npos) {
+            int bytes = read(new_socket, buffer, sizeof(buffer));
+            if (bytes <= 0) {
+                // client disconnected or error
+                break;
+            }
+            request_data.append(buffer, bytes);
         }
+        parse_req(request_data);
 
-        char *hello = "Hello from the server";//IMPORTANT! WE WILL GET TO IT
-        write(new_socket , hello , strlen(hello));
+
+        printf("sending...=== ===== == \n");
+        const char* response = 
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: text/html\r\n"
+            "Content-Length: 30\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            "<h1>Hello from the server</h1>";
+        write(new_socket , response , strlen(response));
     }
 }
