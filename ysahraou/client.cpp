@@ -13,7 +13,7 @@ int main(int argc, char const *argv[])
 {
     int sock = 0; long valread;
     struct sockaddr_in serv_addr;
-    char *hello = "Hello from client";
+    char *hello = "GET /from HTTP/1.1\r\n";
     char buffer[1024] = {0};
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
@@ -38,13 +38,18 @@ int main(int argc, char const *argv[])
         printf("\nConnection Failed \n");
         return -1;
     }
-    send(sock , hello , strlen(hello) , 0 );
+    printf("====start sending ====\n");
+    write(sock , hello , strlen(hello));
+    hello = "Content-Length: 5";
+    write(sock , hello , strlen(hello));
     hello = "\r\n\r\n";
-    send(sock , hello , strlen(hello) , 0 );
-    hello = "gg";
-    send(sock , hello , strlen(hello) , 0 );
-    printf("Hello message sent\n");
-    valread = read( sock , buffer, 1024);
+    write(sock , hello , strlen(hello));
+    hello = "ziad gay!!";
+    write(sock , hello , strlen(hello));
+    printf("====end sending ====\n");
+    printf("====start reseving====\n");
+    read( sock , buffer, 1024);
     printf("%s\n",buffer );
+    printf("====end reseving====\n");
     return 0;
 }

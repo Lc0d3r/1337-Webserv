@@ -10,7 +10,8 @@ struct HttpRequest {
     std::string path;            // e.g., "/index.html"  
     std::string http_version;    // e.g., "HTTP/1.1"
     std::map<std::string, std::string> headers;
+    std::string body; // the body
 };
 
 
-void parse_req(std::string request_data);
+int parse_req(std::string request_data, int socket_fd, HttpRequest &request);

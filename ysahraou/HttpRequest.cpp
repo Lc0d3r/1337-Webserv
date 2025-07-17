@@ -1,15 +1,92 @@
 #include "HttpRequest.hpp"
 
-void parse_req(std::string request_data)
+// Trims leading and trailing spaces
+std::string trim(const std::string& str) {
+    size_t start = 0;
+    while (start < str.length() && std::isspace(str[start]))
+        ++start;
+
+    size_t end = str.length();
+    while (end > start && std::isspace(str[end - 1]))
+        --end;
+
+    return str.substr(start, end - start);
+}
+
+int parse_req(std::string request_data, int socket_fd, HttpRequest &request)
 {
     std::istringstream req_stream(request_data);
     std::string line;
 
     // get and parse the first line
     std::string first_line;
+    if (!first_line.empty() && first_line.back() == '\r')
+        first_line.pop_back();
+
     std::getline(req_stream, first_line);
-    std::cout << "first_line: " << first_line << std::endl;
-    while (std::getline(req_stream, line)) {
-        std::cout << "Line: " << line << std::endl;
+    // std::cout << "first_line: " << first_line << std::endl;
+    std::string method;
+    std::string path;
+    std::string http_version;
+
+    std::istringstream sss(first_line);
+    sss >> method >> path >> http_version;
+    if (method != "GET" && method != "DELETE" && method != "POST") {
+        //hand the  response "bad request 400"
+        const char* response_400 =
+            "HTTP/1.1 400 Bad Request\r\n"
+            "Content-Type: text/html\r\n"
+            "Content-Length: 22\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            "<h1>Bad Request</h1>";
+        write(socket_fd , response_400 , strlen(response_400));
+        std::cout << "400 Bad Request res has send" << std::endl;
+        return 1;
     }
+    if (http_version != "HTTP/1.1") {
+        // send 505 response
+        const char* response_505 =
+            "HTTP/1.1 505 HTTP Version Not Supported\r\n"
+            "Content-Type: text/html\r\n"
+            "Content-Length: 39\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            "<h1>HTTP Version Not Supported</h1>";
+        write(socket_fd , response_505 , strlen(response_505));
+        std::cout << "505 HTTP Version Not Supported res has send" << std::endl;
+        return 1;
+    }
+    request.method = method;
+    request.path = path;
+    request.http_version = http_version;
+    // print the values 
+    std::cout << "method = " << request.method << std::endl;
+    std::cout << "path = " << request.path << std::endl;
+    std::cout << "http version = " << request.http_version << std::endl;
+    // parse the other headers
+    std::map<std::string, std::string> headers;
+    while (std::getline(req_stream, line)) {
+        if (!first_line.empty() && first_line.back() == '\r')
+            first_line.pop_back();
+        // print lines
+        // std::cout << "Line: " << line << std::endl;
+        size_t pos = line.find(':');
+
+        if (pos != std::string::npos) {
+            std::string key = line.substr(0, pos);
+            std::string value = line.substr(pos + 1);
+
+            // Trim whitespace if needed
+            key = trim(key);
+            value = trim(value);
+
+            headers[key] = value;
+        }
+    }
+    request.headers = headers;
+
+    for (auto e : headers)
+        std::cout << "first => " << e.first << " second => " << e.second << std::endl;
+    return 0;
 }
