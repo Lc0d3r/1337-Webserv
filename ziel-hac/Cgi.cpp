@@ -199,7 +199,7 @@ int Cgi::_checkInterpreterScrpt(server *serv)
 
 int Cgi::_checkInterpreter(const std::string &ext, const std::string &interpreter) // checks if the interpreter matches the extension
 {
-	std::vector<std::string> extVector = split(interpreter, '/');
+	std::vector<std::string> extVector = split(interpreter, "/");
 	for (size_t i = 0; i < extVector.size(); ++i)
 		if (i == extVector.size() - 1 && ((extVector[i] == "cgi-php" && ext == ".php") || (extVector[i] == "python3" && ext == ".py")))
 			return 1;
