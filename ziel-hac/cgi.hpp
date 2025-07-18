@@ -19,6 +19,7 @@ public:
 	std::string getExtention() const { return ".php"; }
 	std::string getScriptPath() const { return "/usr/bin/cgi-php"; }
 	std::string getPort() const { return "8080"; }
+	std::string getUploadFile() const { return "/var/www/uploads"; } // Simulated upload directory
 };
 
 // Dummy request class
@@ -33,6 +34,7 @@ public:
 	std::string getContentLength() const { return "0"; } // Simulate no body
 	std::string getExtantion() const { return ".php"; } // Typo in class, must match your real implementation
 	std::string getScriptFilename() const { return "/var/www/html/script.php"; }
+	std::string getBody() const { return "4\r\nrestnigga\r\n5\r\nlesssnigga\r\na\r\n1234567890nigga\r\n0\r\n\r\n"; } 
 };
 
 

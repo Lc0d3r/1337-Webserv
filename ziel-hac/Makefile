@@ -1,7 +1,7 @@
 CPP = c++
 CPPFLAGS = -Wall -Wextra -Werror -std=c++98
 
-SRCS = main.cpp Cgi.cpp cgi_utils.cpp
+SRCS = main.cpp cgi_utils.cpp
 TARGET = test
 
 all: $(TARGET)
