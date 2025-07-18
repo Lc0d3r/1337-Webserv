@@ -6,6 +6,7 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <iostream>
 
 #define PORT 8080
 
@@ -13,7 +14,6 @@ int main(int argc, char const *argv[])
 {
     int sock = 0; long valread;
     struct sockaddr_in serv_addr;
-    char *hello = "GET /from HTTP/1.1\r\n";
     char buffer[1024] = {0};
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
@@ -39,13 +39,21 @@ int main(int argc, char const *argv[])
         return -1;
     }
     printf("====start sending ====\n");
-    write(sock , hello , strlen(hello));
-    hello = "Content-Length: 5";
-    write(sock , hello , strlen(hello));
-    hello = "\r\n\r\n";
-    write(sock , hello , strlen(hello));
-    hello = "ziad gay!!";
-    write(sock , hello , strlen(hello));
+    const char* chunked_request =
+    "POST /upload HTTP/1.1\r\n"
+    "Host: localhost:8080\r\n"
+    "Transfer-Encoding: chunked\r\n"
+    "Content-Type: text/plain\r\n"
+    "\r\n"
+    "7\r\n"
+    "Mozilla\r\n"
+    "9\r\n"
+    "Developer\r\n"
+    "7\r\n"
+    "Network\r\n"
+    "0\r\n"
+    "\r\n";
+    write(sock , chunked_request , strlen(chunked_request));
     printf("====end sending ====\n");
     printf("====start reseving====\n");
     read( sock , buffer, 1024);
