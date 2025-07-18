@@ -90,3 +90,51 @@ int parse_req(std::string request_data, int socket_fd, HttpRequest &request)
         std::cout << "first => " << e.first << " second => " << e.second << std::endl;
     return 0;
 }
+
+
+void readHeaders(std::string &request_data, int new_socket) {
+    char buffer[2] = {0};
+    while (request_data.find("\r\n\r\n") == std::string::npos) {
+        int bytes = read(new_socket, buffer, 1);
+        if (bytes <= 0) {
+            // client disconnected or error
+            break;
+        }
+        request_data.append(buffer, bytes);
+    }
+}
+
+void readBody(HttpRequest &request, std::string &str_body, int new_socket) {
+    int content_length = 0;
+    if (request.headers.count("Content-Length"))
+    {
+        content_length = std::atoi(request.headers["Content-Length"].c_str());
+        std::cout << "true content lenght is there -> " << request.headers.at("Content-Length") << "\n";
+        char buffer[2] = {0};
+        while (str_body.size() < static_cast<size_t>(content_length))
+        {
+            int bytes = read(new_socket, buffer, 1);
+            if (bytes <= 0) {
+                // client disconnected or error
+                break;
+            }
+            str_body.append(buffer, bytes);
+        }
+        request.body = str_body;
+    }
+    else 
+    {
+        std::cout << "false content lenght is not there\n";
+        char buffer[2] = {0};
+        while (str_body.find("\r\n\r\n") == std::string::npos)
+        {
+            int bytes = read(new_socket, buffer, 1);
+            if (bytes <= 0) {
+                // client disconnected or error
+                break;
+            }
+            str_body.append(buffer, bytes);
+        }
+        request.body = str_body;
+    }
+}
