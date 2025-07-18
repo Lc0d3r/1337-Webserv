@@ -44,7 +44,7 @@ int main() {
         if (request.headers.count("Content-Length"))
         {
             content_length = std::atoi(request.headers["Content-Length"].c_str());
-            std::cout << "true -> " << request.headers.at("Content-Length") << "\n";
+            std::cout << "true content lenght is there -> " << request.headers.at("Content-Length") << "\n";
             char buffer[2] = {0};
             while (str_body.size() < static_cast<size_t>(content_length))
             {
@@ -59,7 +59,18 @@ int main() {
         }
         else 
         {
-            std::cout << "false\n";
+            std::cout << "false content lenght is not there\n";
+            char buffer[2] = {0};
+            while (str_body.find("\r\n\r\n") == std::string::npos)
+            {
+                int bytes = read(new_socket, buffer, 1);
+                if (bytes <= 0) {
+                    // client disconnected or error
+                    break;
+                }
+                str_body.append(buffer, bytes);
+            }
+            request.body = str_body;
         }
         std::cout << request.body << std::endl;
 
