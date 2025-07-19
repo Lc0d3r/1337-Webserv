@@ -1,20 +1,13 @@
 #include "ysahraou/sockets.hpp"
 #include "ysahraou/HttpRequest.hpp"
+#include "abel-baz/Router.hpp"
+#include "abel-baz/Config.hpp"
+#include "abel-baz/Parser.hpp"
+#include "abel-baz/Tokenizer.hpp"
 
-int main() {
-
-    SimpleSocket my_socket(AF_INET, SOCK_STREAM, 0, PORT, INADDR_ANY);
-
-
+void loop(SimpleSocket &my_socket)
+{
     int addrlen = sizeof(my_socket.get_serverAddress());
-
-
-    if (listen(my_socket.get_socket_fd(), 5) < 0) 
-    { 
-        perror("In listen"); 
-        exit(EXIT_FAILURE); 
-    }
-
     int new_socket;
     while (1)
     {
@@ -68,4 +61,45 @@ int main() {
         std::cout << "strlen(response) = " << strlen(response) << std::endl;
         write(new_socket , response , strlen(response));
     }
+}
+
+int main(int argc, char **argv) {
+
+
+    // config part
+    if (argc != 2) {
+        std::cerr << "Usage: ./webserv <config_file>" << std::endl;
+        return 1;
+    }
+
+    try {
+        Tokenizer tokenizer(argv[1]);
+        Parser parser(tokenizer.tokenize());
+        Config config = parser.parse();
+
+        RoutingResult result = routingResult(config, "localhost", 8080, "/docs/index.html", "DELETE");
+
+        std::cout << "Server count: " << result.server_count << std::endl;
+        if (result.is_redirect)
+            std::cout << "Redirect to: " << result.redirect_url << std::endl;
+        else if (result.use_autoindex)
+            std::cout << "Autoindex enabled for: " << result.file_path << std::endl;
+        else
+            std::cout << "Serve file: " << result.file_path << std::endl;
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return 1;
+    } 
+    //////////////
+    SimpleSocket my_socket(AF_INET, SOCK_STREAM, 0, PORT, INADDR_ANY);
+    
+    if (listen(my_socket.get_socket_fd(), 5) < 0) 
+    { 
+        perror("In listen"); 
+        exit(EXIT_FAILURE); 
+    }
+
+    //loop
+    loop(my_socket);
 }
