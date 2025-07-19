@@ -1,4 +1,4 @@
-# ✅ webserv_prasing
+# ✅ webserv_parsing
 
 ## Config & Routing System
 
