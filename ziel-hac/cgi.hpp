@@ -31,10 +31,12 @@ public:
 	std::string getQueryString() const { return "id=42&name=test"; }
 	std::string getContentType() const { return "text/html"; }
 	std::string getCookie() const { return "sessionid=abc123"; }
-	std::string getContentLength() const { return "0"; } // Simulate no body
+	std::string getContentLength() const { return "10"; } // Simulate no body
 	std::string getExtantion() const { return ".php"; } // Typo in class, must match your real implementation
 	std::string getScriptFilename() const { return "/var/www/html/script.php"; }
 	std::string getBody() const { return "4\r\nrestnigga\r\n5\r\nlesssnigga\r\na\r\n1234567890nigga\r\n0\r\n\r\n"; } 
+	std::string getTransferEncoding() const { return "chunked"; } // Simulated transfer encoding
+	std::string getContenttype() const { return "multipart/form-data"; } // Simulated content type
 };
 
 
