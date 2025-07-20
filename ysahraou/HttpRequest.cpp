@@ -134,7 +134,7 @@ void readBody(HttpRequest &request, std::string &str_body, int new_socket) {
     {
         std::cout << "false content lenght is not there\n";
         char buffer[2] = {0};
-        while (str_body.find("\r\n\r\n") == std::string::npos)
+        while (str_body.find("\r\n\r\n") == std::string::npos && request.method == "POST")
         {
             int bytes = read(new_socket, buffer, 1);
             if (bytes <= 0) {
@@ -145,4 +145,5 @@ void readBody(HttpRequest &request, std::string &str_body, int new_socket) {
         }
         request.body = str_body;
     }
+    std::cout << "done readong the body" << std::endl;
 }
