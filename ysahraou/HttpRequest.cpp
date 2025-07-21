@@ -20,8 +20,8 @@ int parse_req(std::string request_data, int socket_fd, HttpRequest &request)
 
     // get and parse the first line
     std::string first_line;
-    if (!first_line.empty() && first_line.back() == '\r')
-        first_line.pop_back();
+    if (!first_line.empty() && first_line.c_str()[first_line.size() - 1] == '\r')
+        first_line.erase(first_line.size() - 1);
 
     std::getline(req_stream, first_line);
     // std::cout << "first_line: " << first_line << std::endl;
@@ -67,8 +67,9 @@ int parse_req(std::string request_data, int socket_fd, HttpRequest &request)
     // parse the other headers
     std::map<std::string, std::string> headers;
     while (std::getline(req_stream, line)) {
-        if (!first_line.empty() && first_line.back() == '\r')
-            first_line.pop_back();
+        if (!line.empty() && line.c_str()[line.size() - 1] == '\r') {
+            line.erase(line.size() - 1);
+        }
         // print lines
         // std::cout << "Line: " << line << std::endl;
         size_t pos = line.find(':');
@@ -86,8 +87,13 @@ int parse_req(std::string request_data, int socket_fd, HttpRequest &request)
     }
     request.headers = headers;
 
-    for (auto e : headers)
-        std::cout << "first => " << e.first << " second => " << e.second << std::endl;
+    // for (auto e : headers)
+    //     std::cout << "first => " << e.first << " second => " << e.second << std::endl;
+    for (int i = 0; i < (int)request.headers.size(); i++)
+    {
+        std::cout << "header[" << i << "] = " << request.headers.begin()->first << ": " << request.headers.begin()->second << std::endl;
+        request.headers.erase(request.headers.begin());
+    }
     return 0;
 }
 

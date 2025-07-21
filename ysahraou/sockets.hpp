@@ -11,16 +11,12 @@
 #include <map>
 #include <sstream>  // for std::istringstream
 #include <string>
+#include <cstdio>
+#include <vector>
+#include <netdb.h>
+#include "../abel-baz/Config.hpp"
 
-#define PORT 8080
 
-
-class SimpleSocket {
-    private:
-        int socket_fd;
-        sockaddr_in serverAddress;
-    public:
-        SimpleSocket(int domain, int type, int protocol, int port, u_long interface);
-        int get_socket_fd();
-        sockaddr_in &get_serverAddress();
-};
+int init_Socket(int domain, int type, int protocol, char *port, char *interface);
+std::string intToString(int value);
+std::vector<int> initListeningSockets(const Config &config);

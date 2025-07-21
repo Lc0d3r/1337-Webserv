@@ -1,32 +1,75 @@
 #include "sockets.hpp"
 
+int init_Socket(int domain, int type, int protocol, char *port, char *interface) {
+    int socket_fd;
+    struct addrinfo hints, *res;
 
-SimpleSocket::SimpleSocket(int domain, int type, int protocol, int port, u_long interface) {
+    // Create the socket
+    socket_fd = socket(domain, type, protocol);
+    if (socket_fd == -1) {
+        perror("socket");
+        return -1;
+    }
 
-    //here I create a socket
-    this->socket_fd = socket(domain, type, protocol);
+    // Setup address hints
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = domain;
+    hints.ai_socktype = type;
 
-    // Define the address struct 
-    sockaddr_in serverAddress;
-    serverAddress.sin_family = domain;
-    serverAddress.sin_port = htons(port);
-    // all IP addresses 
-    serverAddress.sin_addr.s_addr = interface;
+    // Get address info
+    if (getaddrinfo(interface, port, &hints, &res) != 0) {
+        perror("getaddrinfo");
+        close(socket_fd);
+        return -1;
+    }
 
-    // only 127.0.0.1
-    // if(inet_pton(AF_INET, "127.0.0.4", &serverAddress.sin_addr)<=0)
-    // {
-    //     printf("\nInvalid address/ Address not supported \n");
-    // }
+    // Bind to the address
+    if (bind(socket_fd, res->ai_addr, res->ai_addrlen) == -1) {
+        perror("bind");
+        std::cerr << "Failed to bind to " << interface << ":" << port << std::endl;
+        close(socket_fd);
+        freeaddrinfo(res);
+        return -1;
+    }
 
-    bind(socket_fd,(struct sockaddr *)&serverAddress, sizeof(serverAddress));
-
-}
-
-sockaddr_in& SimpleSocket::get_serverAddress() {
-    return serverAddress;
-}
-
-int SimpleSocket::get_socket_fd() {
+    freeaddrinfo(res);
     return socket_fd;
 }
+
+std::string intToString(int value) {
+    std::ostringstream oss;
+    oss << value;
+    return oss.str();
+}
+
+std::vector<int> initListeningSockets(const Config &config) {
+        int socket_fd;
+        std::vector<int> listening_fds;
+        for  (int i=0;i < (int)config.servers.size(); i++)
+        {
+            for (int j=0; j < (int)config.servers[i].listens.size(); j++)
+            {
+                std::cout << "host: " << config.servers[i].listens[j].listen_host << "port: " << config.servers[i].listens[j].listen_port << std::endl;
+                socket_fd = init_Socket(AF_INET, SOCK_STREAM, 0, 
+                    (char *)intToString(config.servers[i].listens[j].listen_port).c_str(),
+                    (char *)config.servers[i].listens[j].listen_host.c_str());
+                if (socket_fd < 0) {
+                    std::cerr << "Failed to create socket for "
+                              << config.servers[i].listens[j].listen_host << ":"
+                              << config.servers[i].listens[j].listen_port << std::endl;
+                    return std::vector<int>();
+                }
+                if (listen(socket_fd, 5) < 0) 
+                { 
+                    perror("In listen"); 
+                    exit(EXIT_FAILURE);
+                    return std::vector<int>();
+                }
+                std::cout << "Listening on " << config.servers[i].listens[j].listen_host 
+                          << ":" << config.servers[i].listens[j].listen_port << std::endl;
+                listening_fds.push_back(socket_fd);
+            }
+        }
+
+        return listening_fds;
+} 
