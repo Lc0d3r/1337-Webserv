@@ -21,15 +21,16 @@ Cgi::Cgi(server *serv, request *req)
 
 }
 
-int	Cgi::_executeScript(server *serv, request *req)
+response	Cgi::_executeScript(server *serv, request *req)
 {
+	response res;
 	pipe(output_fd);
 	pipe(input_fd);
 	pid_t pid = fork();
 	if (pid < 0)
 	{
 		std::cerr << "Fork failed." << std::endl;
-		return 0; // Fork failed
+		return NULL; // Fork failed
 	}
 	if(pid == 0)
 	{
@@ -78,8 +79,9 @@ int	Cgi::_executeScript(server *serv, request *req)
 		int bytesRead;
 		while ((bytesRead = read(output_fd[0], buffer, sizeof(buffer) - 1)) > 0)
 		{
-			buffer[bytesRead] = '\0'; // Null-terminate the string
-			// write()
+			buffer[bytesRead] = '\0'; 
+			write(STDOUT_FILENO, buffer, bytesRead);
+			res.body += std::string(buffer, bytesRead);
 		}
 	}
 	else

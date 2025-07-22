@@ -68,7 +68,7 @@ class Cgi
 		int									_checkExtention(const std::string &path, const std::string &ext);
 		int									_checkInterpreter(const std::string &ext, const std::string &interpreter);
 		int									_checkInterpreterScrpt(server *serv);
-		int									_executeScript(server *serv, request *req);
+		response							_executeScript(server *serv, request *req);
 		int									_mergeEnv();
 		void								_printEnv();
 		Cgi();

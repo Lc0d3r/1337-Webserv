@@ -31,8 +31,23 @@ void loop(std::vector<int> &listening_sockets)
 
         // respond
         printf("sending... === ===== === \n");
-        HttpResponse response;
-        response.setBody("<html><body><h1>Hello World!</h1></body></html>");
+        HttpResponse response(200, "OK");
+        // read file index.html put it in the body
+        std::fstream file("www/index.html");
+        std::string body;
+        if (file.is_open()) {
+            std::string line;
+            while (std::getline(file, line)) {
+                body += line + "\n";
+            }
+            file.close();
+        } else {
+            std::cerr << "Unable to open file" << std::endl;
+            response.statusCode = 404;
+            response.statusMessage = "Not Found";
+            body = "<h1>404 Not Found</h1>";
+        }
+        response.setBody(body);
         response.addHeader("Content-Type", "text/html");
         response.addHeader("Connection", "close");
         std::cout << "strlen(response) = " << strlen(response.toString().c_str()) << std::endl;

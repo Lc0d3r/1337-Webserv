@@ -1,14 +1,5 @@
 #include "HttpRequest.hpp"
 
-
-std::string HttpRequest::getContentType() const {
-    if (headers.count("Content-Type")) {
-        return headers.at("Content-Type");
-    }
-    return "";
-}
-
-// Trims leading and trailing spaces
 std::string trim(const std::string& str) {
     size_t start = 0;
     while (start < str.length() && std::isspace(str[start]))
