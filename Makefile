@@ -3,7 +3,10 @@ CXXFLAGS = -std=c++98 -Wall -Wextra -Iysahraou
 
 SRCS = main.cpp ysahraou/sockets.cpp ysahraou/HttpRequest.cpp \
 abel-baz/Config.cpp abel-baz/ParseLocation.cpp abel-baz/Parser.cpp \
-abel-baz/Parser_utils.cpp abel-baz/Router.cpp abel-baz/Tokenizer.cpp
+abel-baz/Parser_utils.cpp abel-baz/Router.cpp abel-baz/Tokenizer.cpp \
+ysahraou/HttpResponse.cpp
+
+
 OBJS = $(SRCS:.cpp=.o)
 
 TARGET = server

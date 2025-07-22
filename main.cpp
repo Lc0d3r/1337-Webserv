@@ -4,6 +4,7 @@
 #include "abel-baz/Config.hpp"
 #include "abel-baz/Parser.hpp"
 #include "abel-baz/Tokenizer.hpp"
+#include "ysahraou/HttpResponse.hpp"
 
 void loop(std::vector<int> &listening_sockets)
 {
@@ -30,15 +31,12 @@ void loop(std::vector<int> &listening_sockets)
 
         // respond
         printf("sending... === ===== === \n");
-        const char* response =
-            "HTTP/1.1 200 OK\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 5\r\n"
-            "Connection: close\r\n"
-            "\r\n\r\n"
-            "test\n";
-        std::cout << "strlen(response) = " << strlen(response) << std::endl;
-        write(new_socket , response , strlen(response));
+        HttpResponse response;
+        response.setBody("<html><body><h1>Hello World!</h1></body></html>");
+        response.addHeader("Content-Type", "text/html");
+        response.addHeader("Connection", "close");
+        std::cout << "strlen(response) = " << strlen(response.toString().c_str()) << std::endl;
+        write(new_socket , response.toString().c_str() , strlen(response.toString().c_str()));
     }
 }
 
