@@ -26,10 +26,10 @@ std::vector<std::string> split_header_and_body(const std::string& str) {
     std::vector<std::string> parts;
     size_t pos = str.find("\r\n\r\n");
     if (pos != std::string::npos) {
-        parts.push_back(str.substr(0, pos)); // Headers
-        parts.push_back(str.substr(pos + 4)); // Body
+        parts.push_back(str.substr(0, pos));
+        parts.push_back(str.substr(pos + 4));
     } else {
-        parts.push_back(str); // No body found
+        parts.push_back(str);
     }
     return parts;
 }
