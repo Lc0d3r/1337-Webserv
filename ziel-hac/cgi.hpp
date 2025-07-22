@@ -10,6 +10,9 @@
 #include <string>
 #include <map>
 #include "cgi_utils.hpp"
+#include <sstream>
+#include <fcntl.h>
+#include <unistd.h>
 
 // Dummy server class
 class server {
@@ -23,19 +26,28 @@ public:
 };
 
 // Dummy request class
-class request {
-public:
+struct request {
+	    std::string method;          // e.g., "GET"
+    std::string path;            // e.g., "/index.html"  
+    std::string http_version;    // e.g., "HTTP/1.1"
+    std::map<std::string, std::string> headers;
+    std::string body; // the body
+	
 	std::string getPath() const { return "/cgi-bin/script.php"; }
 	std::string getExtension() const { return ".php"; }
 	std::string getMethod() const { return "GET"; }
 	std::string getQueryString() const { return "id=42&name=test"; }
 	std::string getContentType() const { return "text/html"; }
 	std::string getCookie() const { return "sessionid=abc123"; }
-	std::string getContentLength() const { return "10"; } // Simulate no body
+	std::string getContentLength() const { return "0"; } // Simulate no body
 	std::string getExtantion() const { return ".php"; } // Typo in class, must match your real implementation
 	std::string getScriptFilename() const { return "/var/www/html/script.php"; }
-	std::string getBody() const { return "4\r\nrestnigga\r\n5\r\nlesssnigga\r\na\r\n1234567890nigga\r\n0\r\n\r\n"; } 
-	std::string getTransferEncoding() const { return "chunked"; } // Simulated transfer encoding
+	std::string getBody() const { return "4\r\nrestnigga\r\n5\r\nlesssnigga\r\na\r\n1234567890nigga\r\n0\r\n\r\n"; }
+	// std::string getBody() const { 
+	// 	return "--WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; name=\"username\"\r\n\r\n1337\r\n--WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; name=\"younesszfat\"\r\n\r\njohn_pork\r\n--WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; name=\"ziadwa3r\"\r\n\r\nniggaballs\r\n--WebKitFormBoundary7MA4YWxkTrZu0gW--\r\n"; 
+	// }
+	std::string getBoundary() const { return "WebKitFormBoundary7MA4YWxkTrZu0gW"; } // Simulated boundary
+	std::string getTransferEncoding() const { return "chuncked"; } // Simulated transfer encoding
 	std::string getContenttype() const { return "multipart/form-data"; } // Simulated content type
 };
 
@@ -63,6 +75,11 @@ class Cgi
 		Cgi(server *serv, request *req);
 		~Cgi();
 };
+
+int posthandler(request *req, server *ser);
+int handle_multiple_form_data(request &req);
+int parsechunked(request &req, server &ser);
+
 
 #endif
 
