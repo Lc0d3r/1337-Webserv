@@ -21,16 +21,18 @@ Cgi::Cgi(server *serv, request *req)
 
 }
 
-response	Cgi::_executeScript(server *serv, request *req)
+int	Cgi::_executeScript(server *serv, request *req, HttpResponse &res)
 {
-	response res;
 	pipe(output_fd);
 	pipe(input_fd);
 	pid_t pid = fork();
 	if (pid < 0)
 	{
-		std::cerr << "Fork failed." << std::endl;
-		return NULL; // Fork failed
+		res.setBody("Internal Server Error");
+		res.statusCode = 500;
+		res.statusMessage = "Internal Server Error";
+		// std::cerr << "Fork failed." << std::endl;
+		// return NULL; // Fork failed
 	}
 	if(pid == 0)
 	{
@@ -38,22 +40,31 @@ response	Cgi::_executeScript(server *serv, request *req)
 		{
 			if (req->getBody().empty())
 			{
-				std::cerr << "No body to send for POST request." << std::endl;
-				exit(1); // Exit child process on error
+				res.setBody("Bad request!");
+				res.statusCode = 400;
+				res.statusMessage = "Bad Request";
+				// std::cerr << "No body to send for POST request." << std::endl;
+				// exit(1); // Exit child process on error
 			}
 			else
 			{
 				if (dup2(input_fd[0], STDIN_FILENO) < 0)
 				{
-					std::cerr << "Failed to redirect stdin." << std::endl;
-					exit(1); // Exit child process on error
+					res.setBody("Internal Server Error");
+					res.statusCode = 500;
+					res.statusMessage = "Internal Server Error";
+					// std::cerr << "Failed to redirect stdin." << std::endl;
+					// exit(1); // Exit child process on error
 				}
 			}
 		}
 		if (dup2(output_fd[1], STDOUT_FILENO) < 0)
 		{
-			std::cerr << "Failed to redirect stdout." << std::endl;
-			exit(1); // Exit child process on error
+			res.setBody("Internal Server Error");
+			res.statusCode = 500;
+			res.statusMessage = "Internal Server Error";
+			// std::cerr << "Failed to redirect stdout." << std::endl;
+			// exit(1); // Exit child process on error
 		}
 		if (req->getMethod() == "POST" && !req->getBody().empty())
 			write(input_fd[1], req->getBody().c_str(), req->getBody().length());
@@ -67,11 +78,14 @@ response	Cgi::_executeScript(server *serv, request *req)
 		argv[2] = NULL;
 		if (execve(argv[0], argv, _envc) < 0)
 		{
-			std::cerr << "Failed to execute script: " << serv->getScriptPath() << std::endl;
-			exit(1); // Exit child process on error
+			res.setBody("Internal Server Error");
+			res.statusCode = 500;
+			res.statusMessage = "Internal Server Error";
+			// std::cerr << "Failed to execute script: " << serv->getScriptPath() << std::endl;
+			// exit(1); // Exit child process on error
 		}
 	}
-	else if (pid > 0)
+	else
 	{
 		close(input_fd[0]);
 		close(output_fd[1]);
@@ -83,11 +97,7 @@ response	Cgi::_executeScript(server *serv, request *req)
 			write(STDOUT_FILENO, buffer, bytesRead);
 			res.body += std::string(buffer, bytesRead);
 		}
-	}
-	else
-	{
-		std::cerr << "Unexpected fork return value." << std::endl;
-		return 0; // Unexpected fork return value
+		res.headers["Content-Length"] = std::to_string(res.body.length());
 	}
 }
 
