@@ -99,7 +99,7 @@ void loop(std::map <int, ConnectionInfo> &connections)
                     std::cout << "Connection removed from map" << std::endl;
 
                 } else {
-                    std::cerr << "Unknown connection type" << std::endl;
+                    // std::cerr << "Unknown connection type" << std::endl;
                     continue;
                 }
             }

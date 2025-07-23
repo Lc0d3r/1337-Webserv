@@ -31,8 +31,7 @@ int	Cgi::_executeScript(server *serv, request *req, HttpResponse &res)
 		res.setBody("Internal Server Error");
 		res.statusCode = 500;
 		res.statusMessage = "Internal Server Error";
-		// std::cerr << "Fork failed." << std::endl;
-		// return NULL; // Fork failed
+		return (0);
 	}
 	if(pid == 0)
 	{
@@ -43,8 +42,7 @@ int	Cgi::_executeScript(server *serv, request *req, HttpResponse &res)
 				res.setBody("Bad request!");
 				res.statusCode = 400;
 				res.statusMessage = "Bad Request";
-				// std::cerr << "No body to send for POST request." << std::endl;
-				// exit(1); // Exit child process on error
+				return (0);
 			}
 			else
 			{
@@ -53,8 +51,7 @@ int	Cgi::_executeScript(server *serv, request *req, HttpResponse &res)
 					res.setBody("Internal Server Error");
 					res.statusCode = 500;
 					res.statusMessage = "Internal Server Error";
-					// std::cerr << "Failed to redirect stdin." << std::endl;
-					// exit(1); // Exit child process on error
+					return (0);
 				}
 			}
 		}
@@ -63,8 +60,7 @@ int	Cgi::_executeScript(server *serv, request *req, HttpResponse &res)
 			res.setBody("Internal Server Error");
 			res.statusCode = 500;
 			res.statusMessage = "Internal Server Error";
-			// std::cerr << "Failed to redirect stdout." << std::endl;
-			// exit(1); // Exit child process on error
+			return (0);
 		}
 		if (req->getMethod() == "POST" && !req->getBody().empty())
 			write(input_fd[1], req->getBody().c_str(), req->getBody().length());
@@ -81,8 +77,7 @@ int	Cgi::_executeScript(server *serv, request *req, HttpResponse &res)
 			res.setBody("Internal Server Error");
 			res.statusCode = 500;
 			res.statusMessage = "Internal Server Error";
-			// std::cerr << "Failed to execute script: " << serv->getScriptPath() << std::endl;
-			// exit(1); // Exit child process on error
+			return (0);
 		}
 	}
 	else
@@ -122,11 +117,11 @@ int	Cgi::_mergeEnv()
 		if (!_envc[i])
 		{
 			std::cerr << "Memory allocation failed for environment variable: " << _envVector[i] << std::endl;
-			return 0; // Memory allocation failure
+			return 0;
 		}
 		strcpy(_envc[i], _envVector[i].c_str());
 	}
-	return 1; // Successfully merged environment variables
+	return 1; 
 }
 
 Cgi::Cgi()
@@ -181,11 +176,6 @@ void Cgi::setEnv(server *serv, request *req)
 
 int Cgi::_checker(server *serv,request *req)
 {
-	// if (!_checkInterpreterScrpt(serv))
-	// {
-	// 	std::cout << "Script path is not valid or not executable." << std::endl;
-	// 	return 1;
-	// }
 	if (!_checkExtention(req->getPath(), serv->getExtention()) && !_checkInterpreter(req->getExtantion(), serv->getScriptPath()))
 	{
 		std::cout << "Script path is not valid or not executable.2" << std::endl;

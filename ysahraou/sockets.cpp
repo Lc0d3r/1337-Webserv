@@ -73,7 +73,7 @@ std::vector<int> initListeningSockets(const Config &config) {
                     exit(EXIT_FAILURE);
                     return std::vector<int>();
                 }
-                std::cout << "Listening on " << config.servers[i].listens[j].listen_host 
+                std::cout << "Listening on http://" << config.servers[i].listens[j].listen_host 
                           << ":" << config.servers[i].listens[j].listen_port << std::endl;
                 listening_fds.push_back(socket_fd);
             }
