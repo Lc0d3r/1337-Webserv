@@ -142,5 +142,5 @@ void readBody(HttpRequest &request, std::string &str_body, int new_socket) {
         }
         request.body = str_body;
     }
-    std::cout << "done readong the body" << std::endl;
+    std::cout << "done reading the body" << std::endl;
 }

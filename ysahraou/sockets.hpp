@@ -14,7 +14,23 @@
 #include <cstdio>
 #include <vector>
 #include <netdb.h>
+#include <poll.h>
+#include <fstream>
+#include <fcntl.h>
+#include <sys/types.h>
 #include "../abel-baz/Config.hpp"
+
+enum Type {
+    LISTENER,  // Listening socket
+    CONNECTED  // Connected socket
+};
+
+struct ConnectionInfo {
+     Type type;
+
+    ConnectionInfo() {};
+    ConnectionInfo(Type t);
+};
 
 
 int init_Socket(int domain, int type, int protocol, char *port, char *interface);

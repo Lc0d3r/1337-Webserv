@@ -59,6 +59,14 @@ std::vector<int> initListeningSockets(const Config &config) {
                               << config.servers[i].listens[j].listen_port << std::endl;
                     return std::vector<int>();
                 }
+                // Set the socket to non-blocking mode
+                int flags = fcntl(socket_fd, F_SETFL, O_NONBLOCK);
+                if (flags < 0) {
+                    perror("fcntl");
+                    close(socket_fd);
+                    return std::vector<int>();
+                }
+
                 if (listen(socket_fd, 5) < 0) 
                 { 
                     perror("In listen"); 
@@ -73,3 +81,7 @@ std::vector<int> initListeningSockets(const Config &config) {
 
         return listening_fds;
 } 
+
+ConnectionInfo::ConnectionInfo(Type t) : type(t) {
+    // Constructor implementation
+}
