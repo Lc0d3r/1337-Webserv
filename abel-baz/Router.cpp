@@ -153,7 +153,7 @@ bool fileExists(const std::string& path) {
     // 3. if the location is a directory and has autoindex enabled, we return the directory path and set use_autoindex to true
     // 4. if the location is a file, we check if it exists and is accessible, then return the file path
 RoutingResult routingResult(const Config& config, const std::string& host,
-                        int port, const std::string& uri, const std::string& method)
+                        int port, const std::string& uri, const std::string& method, errorType& error)
 {
     const ServerConfig& server = matchServer(config, host, port);
     const LocationConfig& location = matchLocation(server, uri);
@@ -173,16 +173,21 @@ RoutingResult routingResult(const Config& config, const std::string& host,
     {
         result.file_path = finalPath(location, uri);
         result.is_redirect = false;
+        std::cout << "is dir ==> " << isDirectory(result.file_path) << std::endl;
         if (isDirectory(result.file_path))
         {
+            // TODO : remove this and allway check if the file exists 
             if (!location.index.empty())
             {
-                std::string index_path = result.file_path + "/" + location.index;
+                std::string index_path = result.file_path + "/" + "index.html";
 
                 if (fileExists(index_path))
                 {
                     if (access(index_path.c_str(), R_OK) != 0)
-                        throw std::runtime_error("Cannot access index file: " + index_path);
+                    {
+                        std::cerr << "Access denied to index file: " << index_path << std::endl;
+                        error = ACCESS_DENIED;
+                    }
 
                     result.use_autoindex = false;
                     result.file_path = index_path;
@@ -198,7 +203,8 @@ RoutingResult routingResult(const Config& config, const std::string& host,
             }
             else
             {
-                throw std::runtime_error("No index file found and autoindex is off");
+                error = NO_INDEX_FILE;
+                std::cerr << "No index file found and autoindex is disabled for: " << result.file_path << std::endl;
             }
         }
         // if the file does not exist here that means that's ur prblm you provided the wrong path
@@ -206,16 +212,24 @@ RoutingResult routingResult(const Config& config, const std::string& host,
         {
             result.use_autoindex = false;
             result.is_directory = false; // It's a file, not a directory
-
-            if (!fileExists(result.file_path))
-                throw std::runtime_error("File does not exist: " + result.file_path);
+            std::cout << "result.file_path ===> " << result.file_path << std::endl;
+            if (!fileExists(result.file_path)){
+                error = FILE_NOT_FOUND;
+                std::cerr << "File does not exist: " << result.file_path << std::endl;
+            }
             if (access(result.file_path.c_str(), R_OK) != 0)
-                throw std::runtime_error("Cannot access file: " + result.file_path);
+            {
+                error = ACCESS_DENIED;
+                std::cerr << "Access denied to file: " << result.file_path << std::endl;
+            }
         }
     }
 
     if (!isMethodAllowed(location, method))
-        throw std::runtime_error("Method not allowed for this location: " + method);
+    {
+        error = METHOD_NOT_ALLOWED;
+        std::cerr << "Method not allowed: " << method << " for URI: " << uri << std::endl;
+    }
 
     return result;
 }

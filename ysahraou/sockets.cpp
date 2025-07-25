@@ -49,7 +49,7 @@ std::vector<int> initListeningSockets(const Config &config) {
         {
             for (int j=0; j < (int)config.servers[i].listens.size(); j++)
             {
-                std::cout << "host: " << config.servers[i].listens[j].listen_host << "port: " << config.servers[i].listens[j].listen_port << std::endl;
+                std::cout << "host: " << config.servers[i].listens[j].listen_host << " port: " << config.servers[i].listens[j].listen_port << std::endl;
                 socket_fd = init_Socket(AF_INET, SOCK_STREAM, 0, 
                     (char *)intToString(config.servers[i].listens[j].listen_port).c_str(),
                     (char *)config.servers[i].listens[j].listen_host.c_str());

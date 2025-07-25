@@ -1,6 +1,9 @@
 #include <string>
 #include <map>
-#include <vector> // Included for completeness, though not strictly used in current body implementation
+#include <vector>
+#include "HttpRequest.hpp"
+#include "sockets.hpp"
+#include "../abel-baz/Router.hpp"
 
 struct HttpResponse {
     std::string httpVersion;
@@ -20,3 +23,7 @@ struct HttpResponse {
 
     std::string toString() const;
 };
+
+
+void response(int client_fd,HttpRequest &request, Config &config);
+void splithostport(const std::string& host, std::string& hostname, int& port);

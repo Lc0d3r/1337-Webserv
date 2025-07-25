@@ -6,6 +6,7 @@
 #include "abel-baz/Tokenizer.hpp"
 #include "ysahraou/HttpResponse.hpp"
 
+<<<<<<< HEAD
 void response(int client_fd)
 {
         // respond
@@ -33,9 +34,10 @@ void response(int client_fd)
         std::cout << "strlen(response) = " << strlen(response.toString().c_str()) << std::endl;
         write(client_fd , response.toString().c_str() , strlen(response.toString().c_str()));
 }
+=======
+>>>>>>> c741ea1991423dfd711b118487b156a31dd6e25a
 
-
-void loop(std::map <int, ConnectionInfo> &connections)
+void loop(std::map <int, ConnectionInfo> &connections, Config &config)
 {
     
     // create a pollfd victor to monitor the listening sockets
@@ -77,6 +79,7 @@ void loop(std::map <int, ConnectionInfo> &connections)
                 else if (connections[pollfds[i].fd].type == CONNECTED) {
                     client_fd = pollfds[i].fd;
                     std::cout << "Data available on socket: " << client_fd << std::endl;
+
                     // read data from the client
                     // read the headers
                     std::string request_data;
@@ -89,13 +92,13 @@ void loop(std::map <int, ConnectionInfo> &connections)
                     std::cout << request.body << std::endl;
                     
                     // response
-                    response(pollfds[i].fd);
-                    // close the connection
+                    response(pollfds[i].fd, request, config);
+
                     close(pollfds[i].fd);
                     std::cout << "Connection closed on socket: " << pollfds[i].fd << std::endl;
-                    // remove the socket from the pollfds vector
+
                     pollfds.erase(pollfds.begin() + i);
-                    // remove the connection from the connections map
+
                     connections.erase(pollfds[i].fd);
                     std::cout << "Connection removed from map" << std::endl;
 
@@ -133,7 +136,7 @@ int main(int argc, char **argv) {
             connections.insert(std::make_pair(listening_sockets[i], ConnectionInfo(LISTENER)));
         }
         //loop
-        loop(connections);
+        loop(connections, config);
     }
     catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
