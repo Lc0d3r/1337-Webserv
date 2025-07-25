@@ -11,6 +11,11 @@ struct HttpRequest {
     std::string http_version;    // e.g., "HTTP/1.1"
     std::map<std::string, std::string> headers;
     std::string body; // the body
+
+    const std::string& getExtension() const;
+    const std::string& getQueryString() const;
+    const std::string& getContentType() const;
+    const std::string& getContentLength() const;
 };
 
 

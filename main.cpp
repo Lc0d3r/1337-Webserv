@@ -25,6 +25,7 @@ void response(int client_fd)
             response.statusCode = 404;
             response.statusMessage = "Not Found";
             body = "<h1>404 Not Found</h1>";
+            body += "<p>The requested resource was not found on this server.</p>";
         }
         response.setBody(body);
         response.addHeader("Content-Type", "text/html");
@@ -66,7 +67,7 @@ void loop(std::map <int, ConnectionInfo> &connections)
                         continue;
                     }
                     std::cout << "New connection accepted on socket: " << client_fd << std::endl;
-                    fcntl(client_fd, F_SETFL, O_NONBLOCK); // set the socket to non-blocking mode
+                    fcntl(client_fd, F_SETFL, O_NONBLOCK);
                     connections[client_fd] = ConnectionInfo(CONNECTED);
                     struct pollfd pfd;
                     pfd.fd = client_fd; // connected socket
@@ -119,7 +120,7 @@ int main(int argc, char **argv) {
         Parser parser(tokenizer.tokenize());
         Config config = parser.parse();
 
-        // RoutingResult result = routingResult(config, "localhost", 8080, "/docs/index.html", "DELETE");
+        RoutingResult result = routingResult(config, "localhost", 8080, "/docs/index.html", "DELETE");
 
         // init servers
         std::vector<int> listening_sockets = initListeningSockets(config);

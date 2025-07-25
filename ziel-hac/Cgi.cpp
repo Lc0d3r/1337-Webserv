@@ -1,12 +1,12 @@
 #include "cgi.hpp"
 
-Cgi::Cgi(server *serv, request *req)
+Cgi::Cgi(RoutingResult *serv, HttpRequest *req)
 {
 	
-	if (!_checker(serv, req))//<-- TO DO!
+	if (!_checker(serv, req))
 	{
 		setEnv(serv, req);
-		_mergeEnv();//<-- TO DO!
+		_mergeEnv();
 		if (!_executeScript())
 		{
 			std::cerr << "Failed to execute CGI script." << std::endl;
@@ -21,7 +21,7 @@ Cgi::Cgi(server *serv, request *req)
 
 }
 
-int	Cgi::_executeScript(server *serv, request *req, HttpResponse &res)
+int	Cgi::_executeScript(RoutingResult *serv, HttpRequest *req, HttpResponse &res)
 {
 	pipe(output_fd);
 	pipe(input_fd);
@@ -35,13 +35,13 @@ int	Cgi::_executeScript(server *serv, request *req, HttpResponse &res)
 	}
 	if(pid == 0)
 	{
-		if (req->getMethod() == "POST")
+		if (req->method == "POST")
 		{
-			if (req->getBody().empty())
+			if (req->body.empty())
 			{
-				res.setBody("Bad request!");
-				res.statusCode = 400;
-				res.statusMessage = "Bad Request";
+				res.setBody("<h1>404 Not Found</h1>");
+				res.statusCode = 404;
+				res.statusMessage = "Not Found";
 				return (0);
 			}
 			else
@@ -62,15 +62,15 @@ int	Cgi::_executeScript(server *serv, request *req, HttpResponse &res)
 			res.statusMessage = "Internal Server Error";
 			return (0);
 		}
-		if (req->getMethod() == "POST" && !req->getBody().empty())
-			write(input_fd[1], req->getBody().c_str(), req->getBody().length());
+		if (req->method == "POST" && !req->body.empty())
+			write(input_fd[1], req->body.c_str(), req->body.length());
 		close(input_fd[1]);
 		close(output_fd[0]);
 		close(output_fd[1]);
 		close(input_fd[0]);
 		char *argv[3];
 		argv[0] = const_cast<char *>(serv->getScriptPath().c_str());
-		argv[1] = const_cast<char *>(req->getPath().c_str());
+		argv[1] = const_cast<char *>(req->path.c_str());
 		argv[2] = NULL;
 		if (execve(argv[0], argv, _envc) < 0)
 		{
@@ -124,18 +124,15 @@ int	Cgi::_mergeEnv()
 	return 1; 
 }
 
-Cgi::Cgi()
-{
-}
 
 
-bool Cgi::_check_extra_path(request *rep)
+bool Cgi::_check_extra_path(HttpRequest *req)
 {
-	std::string path = rep->getPath();//<-- TO DO!
-	if (path.find(rep->getExtension()) != std::string::npos)//<-- TO DO!
+	std::string path = req->path;
+	if (path.find(req->getExtension()) != std::string::npos)
 	{
-		int pos = path.find(rep->getExtension());//<-- TO DO!
-		if (path[pos + rep->getExtension().length()] == '/')//<-- TO DO!
+		int pos = path.find(req->getExtension());
+		if (path[pos + req->getExtension().length()] == '/')
 		{
 			return true;
 		}
@@ -145,54 +142,62 @@ bool Cgi::_check_extra_path(request *rep)
 	return false;
 }
 
-std::string getExtraPath(const std::string &path, server *serv)
+std::string getExtraPath(const std::string &path, RoutingResult *serv)
 {
-	int pos = path.find(serv->getExtention());//<-- TO DO!
-	pos = pos + serv->getExtention().length();//<-- TO DO!
+	int pos = path.find(serv->getExtension());
+	pos = pos + serv->getExtension().length();
 	return path.substr(pos);
 }
 
-void Cgi::setEnv(server *serv, request *req)
+std::string Cgi::getScriptFilename(RoutingResult *serv)
+{
+	if (req->getExtension() == ".php")
+		return ("/usr/bin/php-cgi");
+	return ("/usr/bin/python3");
+}
+
+void Cgi::setEnv(RoutingResult *serv, HttpRequest *req)
 {
 	std::cout << "Setting environment variables for CGI..." << std::endl;
 	if (_check_extra_path(req))
-		_tmpEnv["PATH_INFO"] = getExtraPath(req->getPath(), serv);
+		_tmpEnv["PATH_INFO"] = getExtraPath(req.path, serv);
 	_tmpEnv["AUTH_TYPE"] = "Basic";
-	_tmpEnv["SERVER_NAME"] = serv->getServerName();//<-- DONE!
-	_tmpEnv["SERVER_PORT"] = serv->getPort();//<-- DONE!
+	_tmpEnv["SERVER_NAME"] = serv->getServerName();
+	_tmpEnv["SERVER_PORT"] = req->getPort(); // <-- TO DO! 
 	_tmpEnv["SERVER_PROTOCOL"] = "HTTP/1.1";
 	_tmpEnv["GATEWAY_INTERFACE"] = "CGI/1.1";
 	_tmpEnv["SERVER_SOFTWARE"] = "WebServ/1.0";
-	_tmpEnv["SCRIPT_NAME"] = req->getPath();//<-- TO DO!
-	_tmpEnv["REQUEST_METHOD"] = req->getMethod();//<-- TO DO!
-	_tmpEnv["QUERY_STRING"] = req->getQueryString();//<-- TO DO!
-	_tmpEnv["DOCUMENT_ROOT"] = serv->getDocumentRoot();//<-- DONE!
-	_tmpEnv["SCRIPT_FILENAME"] = req->getScriptFilename();// <-- ALMOST DONE!
+	_tmpEnv["SCRIPT_NAME"] = req->path;
+	_tmpEnv["REQUEST_METHOD"] = req->method;
+	_tmpEnv["QUERY_STRING"] = req->getQueryString();
+	_tmpEnv["DOCUMENT_ROOT"] = serv->getDocumentRoot();
+	_tmpEnv["SCRIPT_FILENAME"] = req->getScriptFilename();
 	_tmpEnv["REDIRECT_STATUS"] = "200";
-	_tmpEnv["CONTENT_TYPE"] = req->getContentType();//<-- TO DO!
-	_tmpEnv["CONTENT_LENGTH"] = req->getContentLength();//<-- TO DO!
-	_tmpEnv["HTTP_COOKIE"] = req->getCookie();//<-- TO DO!
+	_tmpEnv["CONTENT_TYPE"] = req->getContentType();
+	_tmpEnv["CONTENT_LENGTH"] = req->getContentLength();
+	_tmpEnv["HTTP_COOKIE"] = req->getCookie();
+	_tmpEnv["SCRIPT_FILENAME"] = getScriptFilename();
 }
 
-int Cgi::_checker(server *serv,request *req)
+int Cgi::_checker(RoutingResult *serv, HttpRequest *req)
 {
-	if (!_checkExtention(req->getPath(), serv->getExtention()) && !_checkInterpreter(req->getExtantion(), serv->getScriptPath()))
+	if (!_checkExtention(req->path, serv->getExtention()) && !_checkInterpreter(req->getExtantion(), serv->getScriptPath()))
 	{
-		std::cout << "Script path is not valid or not executable.2" << std::endl;
+		std::cout << "Script path is not valid or not executable." << std::endl;
 		return 1;
 	}
 	return 0;
 }
 
-int Cgi::_checkInterpreterScrpt(server *serv)
+int Cgi::_checkInterpreterScrpt(RoutingResult *serv)
 {
 	struct stat _stat;
-	stat(serv->getScriptPath().c_str(), &_stat);
+	stat(getScriptFilename(serv).c_str(), &_stat);
 	if (S_ISDIR(_stat.st_mode)) //<-- checks is the script path is a directory
     	return 0;
 	else
 	{
-		if (access(serv->getScriptPath().c_str(), F_OK | X_OK) != 0)
+		if (access(getScriptFilename(serv).c_str(), F_OK | X_OK) != 0)
 			return 0; //<-- checks if the script path exists and is executable
 	}
 	return 1; //<-- if the script path is not a directory and exists and is executable, return 1
@@ -235,8 +240,3 @@ Cgi::~Cgi()
 {
 }
 
-/*
-TO DO!:
-- i need to merge the variables in the map _tmpEnv to the char **_envc using a vector
-
-*/

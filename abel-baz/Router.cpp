@@ -2,6 +2,28 @@
 #include "sys/stat.h"
 #include "unistd.h"
 
+std::string getScriptFilename() const
+{
+    return (file_path);
+}
+
+std::string getDocumentRoot() const
+{
+    if (server && !server->locations.empty())
+        return server->locations[0].root; // Assuming the first location is the default one
+    return "";
+}
+
+std::string getServerName() const
+{
+    if (server && !server->server_name.empty())
+        return server->server_name[0];
+    return "localhost";
+}
+std::string RoutingResult::getExtension() const
+{
+    return (location->cgi_extension);
+}
 
 // DO: Match a server block based on host and port
 // RETURN: the first server block that matches the port, or the first server block matches the host if no port match is found
@@ -167,6 +189,7 @@ RoutingResult routingResult(const Config& config, const std::string& host,
                     return result; // We're done
                 }
             }
+    
 
             // Either index was empty or the index file was missing
             if (location.autoindex)
