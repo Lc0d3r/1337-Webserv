@@ -6,7 +6,6 @@
 #include "abel-baz/Tokenizer.hpp"
 #include "ysahraou/HttpResponse.hpp"
 
-<<<<<<< HEAD
 void response(int client_fd)
 {
         // respond
@@ -34,8 +33,6 @@ void response(int client_fd)
         std::cout << "strlen(response) = " << strlen(response.toString().c_str()) << std::endl;
         write(client_fd , response.toString().c_str() , strlen(response.toString().c_str()));
 }
-=======
->>>>>>> c741ea1991423dfd711b118487b156a31dd6e25a
 
 void loop(std::map <int, ConnectionInfo> &connections, Config &config)
 {
@@ -122,8 +119,6 @@ int main(int argc, char **argv) {
         Tokenizer tokenizer(argv[1]);
         Parser parser(tokenizer.tokenize());
         Config config = parser.parse();
-
-        RoutingResult result = routingResult(config, "localhost", 8080, "/docs/index.html", "DELETE");
 
         // init servers
         std::vector<int> listening_sockets = initListeningSockets(config);

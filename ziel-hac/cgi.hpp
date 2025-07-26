@@ -14,6 +14,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "HttpResponse.hpp"
+#include "HttpRequest.hpp"
+#include "../abel-baz/Router.hpp"
+
 
 // Dummy server class
 // class server {
@@ -63,7 +66,7 @@ class Cgi
 		int									input_fd[2];
 
     public:
-		std::string							getScriptFilename(RoutingResult *serv, HttpRequest *req) const;
+		std::string							getScriptFilename(RoutingResult *serv) const;
 		void								setEnv(RoutingResult *serv, HttpRequest *req);
 		bool								_check_extra_path(HttpRequest *rep);
 		int									_checker(RoutingResult *serv, HttpRequest *req);

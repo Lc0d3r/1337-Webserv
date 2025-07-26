@@ -7,7 +7,7 @@ Cgi::Cgi(RoutingResult *serv, HttpRequest *req)
 	{
 		setEnv(serv, req);
 		_mergeEnv();
-		if (!_executeScript())
+		if (!_executeScript(serv, req, res))
 		{
 			std::cerr << "Failed to execute CGI script." << std::endl;
 			return; // Handle error appropriately
@@ -69,7 +69,7 @@ int	Cgi::_executeScript(RoutingResult *serv, HttpRequest *req, HttpResponse &res
 		close(output_fd[1]);
 		close(input_fd[0]);
 		char *argv[3];
-		argv[0] = const_cast<char *>(serv->getScriptPath().c_str());
+		argv[0] = const_cast<char *>(getScriptFilename(serv).c_str());
 		argv[1] = const_cast<char *>(req->path.c_str());
 		argv[2] = NULL;
 		if (execve(argv[0], argv, _envc) < 0)
@@ -149,9 +149,9 @@ std::string getExtraPath(const std::string &path, RoutingResult *serv)
 	return path.substr(pos);
 }
 
-std::string Cgi::getScriptFilename(RoutingResult *serv)
+std::string Cgi::getScriptFilename(RoutingResult *serv) const
 {
-	if (req->getExtension() == ".php")
+	if (serv->getExtension() == ".php")
 		return ("/usr/bin/php-cgi");
 	return ("/usr/bin/python3");
 }
@@ -160,7 +160,7 @@ void Cgi::setEnv(RoutingResult *serv, HttpRequest *req)
 {
 	std::cout << "Setting environment variables for CGI..." << std::endl;
 	if (_check_extra_path(req))
-		_tmpEnv["PATH_INFO"] = getExtraPath(req.path, serv);
+		_tmpEnv["PATH_INFO"] = getExtraPath(req->path, serv);
 	_tmpEnv["AUTH_TYPE"] = "Basic";
 	_tmpEnv["SERVER_NAME"] = serv->getServerName();
 	_tmpEnv["SERVER_PORT"] = req->getPort(); // <-- TO DO! 
@@ -171,17 +171,21 @@ void Cgi::setEnv(RoutingResult *serv, HttpRequest *req)
 	_tmpEnv["REQUEST_METHOD"] = req->method;
 	_tmpEnv["QUERY_STRING"] = req->getQueryString();
 	_tmpEnv["DOCUMENT_ROOT"] = serv->getDocumentRoot();
-	_tmpEnv["SCRIPT_FILENAME"] = req->getScriptFilename();
+	_tmpEnv["SCRIPT_FILENAME"] = serv->file_path;
 	_tmpEnv["REDIRECT_STATUS"] = "200";
 	_tmpEnv["CONTENT_TYPE"] = req->getContentType();
 	_tmpEnv["CONTENT_LENGTH"] = req->getContentLength();
 	_tmpEnv["HTTP_COOKIE"] = req->getCookie();
-	_tmpEnv["SCRIPT_FILENAME"] = getScriptFilename();
+	_tmpEnv["SCRIPT_FILENAME"] = getScriptFilename(serv);
 }
 
 int Cgi::_checker(RoutingResult *serv, HttpRequest *req)
 {
-	if (!_checkExtention(req->path, serv->getExtention()) && !_checkInterpreter(req->getExtantion(), serv->getScriptPath()))
+	if (!_checkExtention(req->path, serv->getExtension()) && !_checkInterpreter(req->getExtension(), getScriptFilename(serv)))
+	{
+		std::cout << "Extension is not valid or interpreter does not match." << std::endl;
+		return 1; // Extension is not valid or interpreter does not match
+	}
 	{
 		std::cout << "Script path is not valid or not executable." << std::endl;
 		return 1;

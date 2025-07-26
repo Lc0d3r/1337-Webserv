@@ -1,6 +1,7 @@
 #pragma once
 
 #include "sockets.hpp"
+#include "../ziel-hac/cgi_utils.hpp"
 
 
 // e.g, GET /index.html?key=value&key=value HTTP/1.1
@@ -12,10 +13,10 @@ struct HttpRequest {
     std::map<std::string, std::string> headers;
     std::string body; // the body
 
-    const std::string& getExtension() const;
-    const std::string& getQueryString() const;
-    const std::string& getContentType() const;
-    const std::string& getContentLength() const;
+    std::string getExtension() const;
+    std::string getQueryString() const;
+    std::string getContentType() const;
+    std::string getContentLength() const;
 };
 
 

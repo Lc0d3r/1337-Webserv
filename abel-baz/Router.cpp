@@ -2,24 +2,24 @@
 #include "sys/stat.h"
 #include "unistd.h"
 
-// std::string getScriptFilename() const
-// {
-//     return (file_path);
-// }
+std::string RoutingResult::getScriptFilename() const
+{
+    return (file_path);
+}
 
-// std::string getDocumentRoot() const
-// {
-//     if (server && !server->locations.empty())
-//         return server->locations[0].root; // Assuming the first location is the default one
-//     return "";
-// }
+std::string RoutingResult::getDocumentRoot() const
+{
+    if (server && !server->locations.empty())
+        return server->locations[0].root; // Assuming the first location is the default one
+    return "";
+}
 
-// std::string getServerName() const
-// {
-//     if (server && !server->server_name.empty())
-//         return server->server_name[0];
-//     return "localhost";
-// }
+std::string RoutingResult::getServerName() const
+{
+    if (server && !server->server_name.empty())
+        return server->server_name[0];
+    return "localhost";
+}
 std::string RoutingResult::getExtension() const
 {
     return (location->cgi_extension);

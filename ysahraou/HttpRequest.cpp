@@ -1,34 +1,31 @@
 #include "HttpRequest.hpp"
 
-const std::string& HttpRequest::getContentLength() const
+std::string HttpRequest::getContentLength() const
 {
-    if (headers.count("Content-Length")) {
+    if (headers.count("Content-Length")) 
         return headers.at("Content-Length");
-    }
     return std::string();
 }
 
-const std::string& HttpRequest::getContentType() const
+std::string HttpRequest::getContentType() const
 {
-    if (headers.count("Content-Type")) {
+    if (headers.count("Content-Type")) 
         return headers.at("Content-Type");
-    }
     return std::string(); 
 }
 
-const std::string& HttpRequest::getQueryString() const
+std::string HttpRequest::getQueryString() const
 {
     size_t pos = path.find('?');
-    if (pos != std::string::npos) {
+    if (pos != std::string::npos)
         return path.substr(pos + 1);
-    }
     return std::string();
 }
 
-const std::string& HttpRequest::getExtension() const
+std::string HttpRequest::getExtension() const
 {
-    std::vector<std::string> parts = split(path, '/');
-    for (std::vector<std::string>::reverse_iterator it = parts.begin(); it != parts.end(); ++it) {
+    std::vector<std::string> parts = split(path, "/");
+    for (std::vector<std::string>::iterator it = parts.begin(); it != parts.end(); ++it) {
         std::string part = *it;
         size_t pos = part.find_last_of('.');
         if (pos != std::string::npos && pos < part.length() - 1) {
