@@ -167,6 +167,7 @@ RoutingResult routingResult(const Config& config, const std::string& host,
     result.server = &server;
     result.location = &location;
     result.server_count = config.servers.size();
+    result.use_autoindex = false;
 
     if (!location.redirection.empty())
     {
