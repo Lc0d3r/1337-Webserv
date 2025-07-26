@@ -2,6 +2,7 @@
 #include "sockets.hpp"
 #include <dirent.h>
 #include <fstream>
+#include "../ziel-hac/post.hpp"
 
 std::string HttpResponse::toString() const {
         std::string responseString = httpVersion + " " + intToString(statusCode) + " " + statusMessage + "\r\n";
@@ -363,7 +364,18 @@ void response(int client_fd, HttpRequest &request, Config &config)
     (void)config;
     printf("===========\[sending...]===========\n");
     HttpResponse response(200, "OK");
-    handleGETRequest(response, request, config);
+    if (request.method == "GET") {
+        handleGETRequest(response, request, config);
+    } else if (request.method == "POST") {
+        errorType error = NO_ERROR;
+        int port;
+        std::string hostname;
+        splithostport(request.headers.at("Host"), hostname, port);
+        RoutingResult routing_result = routingResult(config, hostname, port, request.path, request.method, error);
+        if (error != NO_ERROR) {
+            posthandler(&request, &routing_result, response);
+        }
+    }
 
     // sending the response
     std::cout << "strlen(response) = " << strlen(response.toString().c_str()) << std::endl;

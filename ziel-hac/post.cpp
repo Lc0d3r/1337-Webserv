@@ -70,13 +70,14 @@ int handle_multiple_form_data(HttpRequest &req)
 
 int posthandler(HttpRequest *req, RoutingResult *ser, HttpResponse &res)
 {
+	std::cout << "Handling POST request" << std::endl;
     if (req->getContentType() == "multipart/form-data")
     {
         if (!req->getTransferEncoding().empty())
 		{
             if(!parsechunked(*req, *ser))
             {
-				res.setBody("<h1>400 Bad Request</h1>");
+				res.setTextBody("<h1>400 Bad Request</h1>");
 				res.statusCode = 400;
 				res.statusMessage = "Bad Request";
 				return 0;
@@ -86,7 +87,7 @@ int posthandler(HttpRequest *req, RoutingResult *ser, HttpResponse &res)
 		{
             if (!handle_multiple_form_data(*req))
 			{
-				res.setBody("<h1>400 Bad Request</h1>");
+				res.setTextBody("<h1>400 Bad Request</h1>");
 				res.statusCode = 400;
 				res.statusMessage = "Bad Request";
 				return 0;
@@ -95,7 +96,7 @@ int posthandler(HttpRequest *req, RoutingResult *ser, HttpResponse &res)
 		}
         else
 		{
-			res.setBody("<h1>400 Bad Request</h1>");
+			res.setTextBody("<h1>400 Bad Request</h1>");
 			res.statusCode = 400;
 			res.statusMessage = "Bad Request";
 			return 0;

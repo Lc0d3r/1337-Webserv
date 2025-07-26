@@ -1,28 +1,47 @@
 #include "HttpRequest.hpp"
 
-std::string HttpRequest::getContentLength() const
+const std::string& HttpRequest::getTransferEncoding() const
 {
-    if (headers.count("Content-Length")) 
-        return headers.at("Content-Length");
+    if (headers.count("Transfer-Encoding")) {
+        return headers.at("Transfer-Encoding");
+    }
     return std::string();
 }
 
-std::string HttpRequest::getContentType() const
+const std::string& HttpRequest::getBoundary() const
 {
-    if (headers.count("Content-Type")) 
+    if (headers.count("boundary")) {
+        return headers.at("boundary");
+    }
+    return std::string();
+}
+
+const std::string& HttpRequest::getContentLength() const
+{
+    if (headers.count("Content-Length")) {
+        return headers.at("Content-Length");
+    }
+    return std::string();
+}
+
+const std::string& HttpRequest::getContentType() const
+{
+    if (headers.count("Content-Type")) {
         return headers.at("Content-Type");
+    }
     return std::string(); 
 }
 
-std::string HttpRequest::getQueryString() const
+const std::string& HttpRequest::getQueryString() const
 {
     size_t pos = path.find('?');
-    if (pos != std::string::npos)
+    if (pos != std::string::npos) {
         return path.substr(pos + 1);
+    }
     return std::string();
 }
 
-std::string HttpRequest::getExtension() const
+const std::string& HttpRequest::getExtension() const
 {
     std::vector<std::string> parts = split(path, "/");
     for (std::vector<std::string>::iterator it = parts.begin(); it != parts.end(); ++it) {

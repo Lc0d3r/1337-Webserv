@@ -14,10 +14,12 @@ struct HttpRequest {
     std::map<std::string, std::string> headers;
     std::string body; // the body
 
-    std::string getExtension() const;
-    std::string getQueryString() const;
-    std::string getContentType() const;
-    std::string getContentLength() const;
+    const std::string& getExtension() const;
+    const std::string& getQueryString() const;
+    const std::string& getContentType() const;
+    const std::string& getContentLength() const;
+    const std::string& getBoundary() const;
+    const std::string& getTransferEncoding() const;
 };
 
 

@@ -5,6 +5,7 @@ SRCS = main.cpp ysahraou/sockets.cpp ysahraou/HttpRequest.cpp \
 abel-baz/Config.cpp abel-baz/ParseLocation.cpp abel-baz/Parser.cpp \
 abel-baz/Parser_utils.cpp abel-baz/Router.cpp abel-baz/Tokenizer.cpp \
 ysahraou/HttpResponse.cpp ziel-hac/cgi_utils.cpp \
+ziel-hac/post.cpp 
 
 
 OBJS = $(SRCS:.cpp=.o)
