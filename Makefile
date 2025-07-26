@@ -1,31 +1,38 @@
+NAME = webserv
+
 CXX = c++
-CXXFLAGS = -std=c++98 -Wall -Wextra -Iysahraou
+CXXFLAGS = -std=c++98 -Iysahraou #-Wall -Wextra -Werror
+RM = rm -rf
 
-SRCS = main.cpp ysahraou/sockets.cpp ysahraou/HttpRequest.cpp \
-abel-baz/Config.cpp abel-baz/ParseLocation.cpp abel-baz/Parser.cpp \
-abel-baz/Parser_utils.cpp abel-baz/Router.cpp abel-baz/Tokenizer.cpp \
-ysahraou/HttpResponse.cpp ziel-hac/cgi_utils.cpp \
-ziel-hac/post.cpp 
+SRC = main.cpp ysahraou/sockets.cpp ysahraou/HttpRequest.cpp \
+		abel-baz/Config.cpp abel-baz/ParseLocation.cpp abel-baz/Parser.cpp \
+		abel-baz/Parser_utils.cpp abel-baz/Router.cpp abel-baz/Tokenizer.cpp \
+		ysahraou/HttpResponse.cpp ziel-hac/cgi_utils.cpp \
+		ziel-hac/post.cpp 
 
+OBJ = $(SRC:.cpp=.o)
 
-OBJS = $(SRCS:.cpp=.o)
+BOLD      = \e[1m
+CGREEN    = \e[32m
 
-TARGET = server
-
-all: $(TARGET)
-
-$(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+all: $(NAME)
 
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	@$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(NAME): $(OBJ)
+	@echo "$(BOLD)$(CGREEN)building the project...\e[0m"
+	@$(CXX) $(CXXFLAGS) $(OBJ) -o $(NAME)
 
 clean:
-	rm -f $(OBJS)
+	@echo "$(BOLD)$(CGREEN)cleaning ...\033[0m"
+	@$(RM) $(OBJ)
 
-fclean: clean
-	rm -f $(TARGET)
+fclean: clean 
+	@$(RM) $(NAME)
 
-re: fclean all
+re: fclean all 
 
 .PHONY: all clean fclean re
+
+.SECONDARY:
