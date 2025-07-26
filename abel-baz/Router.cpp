@@ -86,7 +86,6 @@ const LocationConfig& matchLocation(const ServerConfig& server, const std::strin
 std::string finalPath(const LocationConfig& location, const std::string& uri) {
     const std::string& root = location.root;
     const std::string& locPath = location.path;
-
     // Step 1: remove the location path from the URI
         // substr(index to start from, length of the substring)
     std::string remain = uri.substr(locPath.length());
@@ -94,7 +93,8 @@ std::string finalPath(const LocationConfig& location, const std::string& uri) {
     // Step 2: avoid double slashes
     if (root[root.size() - 1] == '/' && !remain.empty() && remain[0] == '/')
         remain = remain.substr(1);
-
+    else
+        remain = "/" + remain;
     // Step 3: combine root + remain
     return root + remain;
 }

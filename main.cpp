@@ -22,17 +22,40 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
     // loop to accept connections
     while (1)
     {
-        HttpRequest request;
         int ready = poll(pollfds.data(), pollfds.size(), -1);
         if (ready < 0) {
             perror("poll");
             break;
         }
+        // for each socket that is ready, check if it is a listener or a connected socket
         for (size_t i = 0; i < pollfds.size(); ++i) {
+            HttpRequest request;
             int client_fd;
+
+            // Check for errors or disconnections
+            if (pollfds[i].revents & (POLLHUP | POLLERR)) {
+                std::cout << "Client disconnected or socket error: " << pollfds[i].fd << std::endl;
+                close(pollfds[i].fd);
+                connections.erase(pollfds[i].fd);
+                pollfds.erase(pollfds.begin() + i);
+                --i;
+                continue;
+            }
+            // check if the fd client_fd timeout
+            if (connections[pollfds[i].fd].type == CONNECTED &&
+                time(NULL) - connections[pollfds[i].fd].last_active > 60){
+                std::cout << "Client socket " << pollfds[i].fd << " timed out." << std::endl;
+                close(pollfds[i].fd);
+                connections.erase(pollfds[i].fd);
+                pollfds.erase(pollfds.begin() + i);
+                --i;
+                continue;
+            }
+            // Check for readable sockets
             if (pollfds[i].revents & POLLIN) {
+                std::cout << "\nSocket " << pollfds[i].fd << " is ready for reading..." << std::endl;
                 if (connections[pollfds[i].fd].type == LISTENER) {
-                        // accept a new connection
+                    // accept a new connection
                     client_fd = accept(pollfds[i].fd, NULL, NULL);
                     if (client_fd < 0) {
                         perror("accept");
@@ -40,7 +63,8 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                     }
                     std::cout << "New connection accepted on socket: " << client_fd << std::endl;
                     fcntl(client_fd, F_SETFL, O_NONBLOCK); // set the socket to non-blocking mode
-                    connections[client_fd] = ConnectionInfo(CONNECTED);
+                    connections[client_fd] = ConnectionInfo(CONNECTED, true);
+                    connections[client_fd].last_active = time(NULL);
                     struct pollfd pfd;
                     pfd.fd = client_fd; // connected socket
                     pfd.events = POLLIN; // events to monitor
@@ -54,27 +78,24 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                     // read the headers
                     std::string request_data;
                     readHeaders(request_data, client_fd);
-                    if (parse_req(request_data, client_fd, request))
-                        continue;
                     // read the body
                     std::string str_body;
                     readBody(request, str_body, client_fd);
                     std::cout << request.body << std::endl;
+                    std::cout << "====>requestData read successfully" << std::endl;
+                    if (parse_req(request_data, client_fd, request))
+                        continue;
+                    // handle keep-alive connections
+                    if (request.is_keep_alive) {
+                        connections[pollfds[i].fd].keep_alive = true;
+                        connections[pollfds[i].fd].last_active = time(NULL);
+                    } else {
+                        connections[pollfds[i].fd].keep_alive = false;
+                    }
                     
                     // response
+                    std::cout << "====>request parsed successfully" << std::endl;
                     response(pollfds[i].fd, request, config);
-
-                    close(pollfds[i].fd);
-                    std::cout << "Connection closed on socket: " << pollfds[i].fd << std::endl;
-
-                    pollfds.erase(pollfds.begin() + i);
-
-                    connections.erase(pollfds[i].fd);
-                    std::cout << "Connection removed from map" << std::endl;
-
-                } else {
-                    // std::cerr << "Unknown connection type" << std::endl;
-                    continue;
                 }
             }
         }
@@ -88,7 +109,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    try {
+    // try {
         Tokenizer tokenizer(argv[1]);
         Parser parser(tokenizer.tokenize());
         Config config = parser.parse();
@@ -103,13 +124,16 @@ int main(int argc, char **argv) {
         }
         std::map<int, ConnectionInfo> connections;
         for (int i = 0; i < (int)listening_sockets.size(); ++i) {
-            connections.insert(std::make_pair(listening_sockets[i], ConnectionInfo(LISTENER)));
+            connections.insert(std::make_pair(listening_sockets[i], ConnectionInfo(LISTENER, false)));
         }
         //loop
         loop(connections, config);
-    }
-    catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-        return 1;
-    } 
+    // }
+    // catch (const std::exception& e) {
+        // catch any exceptions thrown or segmentation faults
+        // std::cout << "Exception caught: " << e.what() << std::endl;
+        // std::cerr << "Error: " << e.what() << std::endl;
+        // return 1;
+    // }
+    return 0;
 }

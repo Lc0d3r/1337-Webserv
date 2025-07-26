@@ -9,6 +9,8 @@ struct HttpResponse {
     std::string httpVersion;
     int statusCode;
     std::string statusMessage;
+    std::string connection;
+    std::string keep_alive;
     std::map<std::string, std::string> headers;
     std::string body;
 
