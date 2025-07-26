@@ -158,4 +158,25 @@ void Parser::parseMaxBodySize(ServerConfig& server) {
         throw std::runtime_error("Expected ';' after client_max_body_size");
 }
 
+void Parser::parseKeepAlive(ServerConfig& server) {
+    Token val = get();
+    if (val.type != VALUE)
+        throw std::runtime_error("Expected value for keep_alive_timeout");
 
+    if (val.text.empty())
+        throw std::runtime_error("keep_alive_timeout cannot be empty");
+
+    for (size_t i = 0; i < val.text.length(); ++i) {
+        if (!std::isdigit(val.text[i]))
+            throw std::runtime_error("keep_alive_timeout must be a positive number");
+    }
+
+    int timeout = std::atoi(val.text.c_str());
+    if (timeout < 0)
+        throw std::runtime_error("keep_alive_timeout must not be negative");
+
+    server.keep_alive_timeout = timeout;
+
+    if (get().type != SEMICOLON)
+        throw std::runtime_error("Expected ';' after keep_alive_timeout");
+}

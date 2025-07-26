@@ -35,8 +35,9 @@ struct ServerConfig
     std::map<int, std::string> error_pages; // 404 => "/404.html"
     std::vector<LocationConfig> locations;  // List of locations
     size_t max_body_size;
+    int keep_alive_timeout; // in seconds, default 5 seconds
 
-    ServerConfig() : max_body_size(1000000) {} // example default: 1 MB
+    ServerConfig() : max_body_size(1000000), keep_alive_timeout(5) {} // example default: 1 MB
 };
 
 // Holds the full parsed config file

@@ -5,7 +5,8 @@ bool is_keyword(const std::string& word)
     static const std::string keywords[] = {
         "server", "listen", "location", "root", "methods",
         "index", "server_name", "autoindex", "error_page",
-        "upload_dir", "cgi_extension", "redirection", "max_body_size"
+        "upload_dir", "cgi_extension", "redirection", "max_body_size",
+        "keep_alive_timeout"
     };
 
     for (size_t i = 0; i < sizeof(keywords) / sizeof(keywords[0]); ++i)

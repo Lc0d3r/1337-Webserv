@@ -35,6 +35,7 @@ private:
     void parseLocationCGI(LocationConfig& loc);
     void parseErrorPage(ServerConfig& server);
     void parseMaxBodySize(ServerConfig& server);
+    void parseKeepAlive(ServerConfig& server);
 
 };
 

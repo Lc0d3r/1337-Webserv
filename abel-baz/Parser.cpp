@@ -56,6 +56,8 @@ void Parser::parseServer(Config& config) {
             parseErrorPage(server);
         } else if (key.text == "max_body_size") {
             parseMaxBodySize(server);
+        } else if (key.text == "keep_alive_timeout") {
+            parseKeepAlive(server);
         } else {
             throw std::runtime_error("Unknown server directive: " + key.text);
         }
