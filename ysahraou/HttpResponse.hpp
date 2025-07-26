@@ -9,10 +9,10 @@ struct HttpResponse {
     std::string httpVersion;
     int statusCode;
     std::string statusMessage;
-    std::string connection;
-    std::string keep_alive;
     std::map<std::string, std::string> headers;
-    std::string body;
+    std::string text_body;            // For text/html, JSON, etc.
+    std::vector<char> binary_body;   // For PDFs, images, etc.
+    bool is_binary;                  // Flag to know which one to send
 
     HttpResponse() : httpVersion("HTTP/1.1"), statusCode(200), statusMessage("OK") {}
 
@@ -21,7 +21,7 @@ struct HttpResponse {
 
     void addHeader(const std::string& key, const std::string& value) ;
 
-    void setBody(const std::string& content);
+    void setTextBody(const std::string& content);
 
     std::string toString() const;
 };

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Motorcycle Passion</title>
+  <style>
+    :root {
+      --primary: #1e1f26;
+      --accent: #e63946;
+      --light: #f1faee;
+      --gray: #a8dadc;
+      --dark-gray: #457b9d;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--primary);
+      color: var(--light);
+      line-height: 1.6;
+    }
+
+    header {
+      background: var(--accent);
+      padding: 40px 20px;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 3em;
+    }
+
+    nav {
+      background: var(--dark-gray);
+      display: flex;
+      justify-content: center;
+      padding: 10px;
+    }
+
+    nav a {
+      color: var(--light);
+      margin: 0 15px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    nav a:hover {
+      text-decoration: underline;
+    }
+
+    main {
+      padding: 40px 20px;
+      max-width: 1000px;
+      margin: auto;
+    }
+
+    section {
+      margin-bottom: 40px;
+    }
+
+    section h2 {
+      color: var(--gray);
+      margin-bottom: 10px;
+    }
+
+    .highlight {
+      background: var(--dark-gray);
+      padding: 20px;
+      border-radius: 10px;
+    }
+
+    footer {
+      background: #222;
+      color: #bbb;
+      text-align: center;
+      padding: 20px;
+      font-size: 0.9em;
+      margin-top: 40px;
+    }
+
+    img {
+      width: 100%;
+      max-width: 700px;
+      border-radius: 10px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 768px) {
+      header h1 {
+        font-size: 2em;
+      }
+
+      nav {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      nav a {
+        margin: 10px 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Motorcycle Passion</h1>
+    <p>Speed. Freedom. Adventure.</p>
+  </header>
+
+  <nav>
+    <a href="#history">History</a>
+    <a href="#types">Types</a>
+    <a href="#riders">Famous Riders</a>
+    <a href="#safety">Safety Tips</a>
+  </nav>
+
+  <main>
+    <section id="history">
+      <h2>The History of Motorcycles</h2>
+      <p>
+        The first internal combustion, petroleum-fueled motorcycle was the Daimler Reitwagen, invented by Gottlieb Daimler and Wilhelm Maybach in Germany in 1885.
+        Since then, motorcycles have become a symbol of speed, innovation, and independence.
+      </p>
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Daimler_Reitwagen_1885.jpg/640px-Daimler_Reitwagen_1885.jpg" alt="Old Motorcycle">
+    </section>
+
+    <section id="types">
+      <h2>Types of Motorcycles</h2>
+      <div class="highlight">
+        <ul>
+          <li><strong>Sport Bikes:</strong> Built for speed and agility, like the Yamaha R1 and Ducati Panigale.</li>
+          <li><strong>Cruisers:</strong> Known for comfort and classic design – think Harley-Davidson.</li>
+          <li><strong>Adventure/Touring:</strong> Ideal for long journeys, like the BMW GS or Honda Africa Twin.</li>
+          <li><strong>Off-Road:</strong> Designed for rugged terrain – examples include KTM dirt bikes.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="riders">
+      <h2>Famous Riders</h2>
+      <p>
+        Motorcycle racing has produced legends like <strong>Valentino Rossi</strong>, a nine-time world champion,
+        and <strong>Marc Márquez</strong>, known for his aggressive and fearless riding style.
+        In the custom and stunt scene, names like <strong>Travis Pastrana</strong> and <strong>Evel Knievel</strong> are iconic.
+      </p>
+    </section>
+
+    <section id="safety">
+      <h2>Safety Tips</h2>
+      <div class="highlight">
+        <ol>
+          <li>Always wear a helmet and protective gear.</li>
+          <li>Stay visible and use your headlights during the day.</li>
+          <li>Take motorcycle safety courses regularly.</li>
+          <li>Never ride under the influence.</li>
+          <li>Check your tires, brakes, and lights before every ride.</li>
+        </ol>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 Motorcycle Passion. Ride safe and ride free.</p>
+  </footer>
+
+</body>
+</html>

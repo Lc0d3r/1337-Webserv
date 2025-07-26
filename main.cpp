@@ -27,7 +27,7 @@ void response(int client_fd)
             body = "<h1>404 Not Found</h1>";
             body += "<p>The requested resource was not found on this server.</p>";
         }
-        response.setBody(body);
+        response.setTextBody(body);
         response.addHeader("Content-Type", "text/html");
         response.addHeader("Connection", "close");
         std::cout << "strlen(response) = " << strlen(response.toString().c_str()) << std::endl;
@@ -38,6 +38,7 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
 {
     
     // create a pollfd victor to monitor the listening sockets
+    int timeout = 10; // 10 seconds timeout
     std::vector<struct pollfd> pollfds;
     std::map<int, ConnectionInfo>::iterator it;
     for (it = connections.begin(); it != connections.end(); ++it) {
@@ -49,7 +50,7 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
     // loop to accept connections
     while (1)
     {
-        int ready = poll(pollfds.data(), pollfds.size(), -1);
+        int ready = poll(pollfds.data(), pollfds.size(), (timeout + 1) * 1000); // 11 seconds timeout
         if (ready < 0) {
             perror("poll");
             break;
@@ -69,14 +70,19 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                 continue;
             }
             // check if the fd client_fd timeout
-            if (connections[pollfds[i].fd].type == CONNECTED &&
-                time(NULL) - connections[pollfds[i].fd].last_active > 60){
+            if (connections.count(pollfds[i].fd) &&
+                connections[pollfds[i].fd].type == CONNECTED &&
+                time(NULL) - connections[pollfds[i].fd].last_active > timeout) {
                 std::cout << "Client socket " << pollfds[i].fd << " timed out." << std::endl;
                 close(pollfds[i].fd);
                 connections.erase(pollfds[i].fd);
                 pollfds.erase(pollfds.begin() + i);
                 --i;
                 continue;
+            }
+            else if (connections.count(pollfds[i].fd) &&
+                     connections[pollfds[i].fd].type == CONNECTED) {
+                std::cout << "Socket " << pollfds[i].fd << " is ready for reading..." << std::endl;
             }
             // Check for readable sockets
             if (pollfds[i].revents & POLLIN) {
@@ -114,6 +120,7 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                         continue;
                     // handle keep-alive connections
                     if (request.is_keep_alive) {
+                        std::cout << "Connection is keep-alive setting keep_alive to true" << std::endl;
                         connections[pollfds[i].fd].keep_alive = true;
                         connections[pollfds[i].fd].last_active = time(NULL);
                     } else {
