@@ -3,9 +3,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-int parsechunked(request &req, server &ser) //<-- i need to parse chuncked body, for both cgi and non cgi, put to bodies one in the request to usit in cgi and the in the upload file in the conf.file 
+int parsechunked(HttpRequest &req, RoutingResult &ser) //<-- i need to parse chuncked body, for both cgi and non cgi, put to bodies one in the request to usit in cgi and the in the upload file in the conf.file 
 {
-	std::vector<std::string> chunks = split(req.getBody(), "\r\n");
+	std::vector<std::string> chunks = split(req.body, "\r\n");
 	size_t chunk_size = 0;
 	size_t i = 0;
 	std::string upload_file = ser.getUploadFile() + "/uploads.txt";
@@ -34,11 +34,10 @@ int parsechunked(request &req, server &ser) //<-- i need to parse chuncked body,
 	return 1;
 }
 
-int handle_multiple_form_data(request &req)
+int handle_multiple_form_data(HttpRequest &req)
 {
 	std::string boundary = req.getBoundary();
-	// std::cout << "Boundary: " << boundary << std::endl;
-	std::vector<std::string> parts = split(req.getBody(), "--" + boundary);
+	std::vector<std::string> parts = split(req.body, "--" + boundary);
 	for(size_t i = 0; i < parts.size(); ++i)
 	{
 		size_t n = 0;
@@ -69,19 +68,38 @@ int handle_multiple_form_data(request &req)
 	return 1; // Indicate success
 }
 
-int posthandler(request *req, server *ser)
+int posthandler(HttpRequest *req, RoutingResult *ser, HttpResponse &res)
 {
-    if (req->getContenttype() == "multipart/form-data")
+    if (req->getContentType() == "multipart/form-data")
     {
         if (!req->getTransferEncoding().empty())
 		{
             if(!parsechunked(*req, *ser))
-                return 0; // Handle error appropriately
+            {
+				res.setBody("<h1>400 Bad Request</h1>");
+				res.statusCode = 400;
+				res.statusMessage = "Bad Request";
+				return 0;
+			}
 		}
         else if (!req->getContentLength().empty())
-            handle_multiple_form_data(*req);
+		{
+            if (!handle_multiple_form_data(*req))
+			{
+				res.setBody("<h1>400 Bad Request</h1>");
+				res.statusCode = 400;
+				res.statusMessage = "Bad Request";
+				return 0;
+			}
+
+		}
         else
-            std::cerr << "bad request" << std::endl;
+		{
+			res.setBody("<h1>400 Bad Request</h1>");
+			res.statusCode = 400;
+			res.statusMessage = "Bad Request";
+			return 0;
+		}
     }
 	return 1;
 }

@@ -18,6 +18,7 @@ struct RoutingResult
     std::string getServerName() const;
     std::string getDocumentRoot() const;
     std::string getScriptFilename() const;
+    std::string getUploadFile() const;
 };
 
 

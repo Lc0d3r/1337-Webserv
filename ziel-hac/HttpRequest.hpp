@@ -17,6 +17,9 @@ struct HttpRequest {
     const std::string& getQueryString() const;
     const std::string& getContentType() const;
     const std::string& getContentLength() const;
+    const std::string& getBoundary() const;
+    const std::string& getTransferEncoding() const;
+    
 };
 
 

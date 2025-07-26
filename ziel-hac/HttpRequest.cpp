@@ -1,5 +1,20 @@
 #include "HttpRequest.hpp"
 
+const std::string& HttpRequest::getTransferEncoding() const
+{
+    if (headers.count("Transfer-Encoding")) {
+        return headers.at("Transfer-Encoding");
+    }
+    return std::string();
+}
+
+const std::string& HttpRequest::getBoundary() const
+{
+    if (headers.count("boundary")) {
+        return headers.at("boundary");
+    }
+    return std::string();
+}
 
 const std::string& HttpRequest::getContentLength() const
 {
@@ -28,8 +43,8 @@ const std::string& HttpRequest::getQueryString() const
 
 const std::string& HttpRequest::getExtension() const
 {
-    std::vector<std::string> parts = split(path, '/');
-    for (std::vector<std::string>::reverse_iterator it = parts.begin(); it != parts.end(); ++it) {
+    std::vector<std::string> parts = split(path, "/");
+    for (std::vector<std::string>::iterator it = parts.begin(); it != parts.end(); ++it) {
         std::string part = *it;
         size_t pos = part.find_last_of('.');
         if (pos != std::string::npos && pos < part.length() - 1) {

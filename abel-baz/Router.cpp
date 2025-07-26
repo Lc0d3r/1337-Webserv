@@ -2,6 +2,11 @@
 #include "sys/stat.h"
 #include "unistd.h"
 
+std::string RoutingResult::getUploadFile() const
+{
+    return (location->upload_dir);
+}
+
 std::string RoutingResult::getScriptFilename() const
 {
     return (file_path);
