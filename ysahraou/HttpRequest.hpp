@@ -12,6 +12,11 @@ struct HttpRequest {
     bool is_keep_alive; // true if the connection should be kept alive
     std::map<std::string, std::string> headers;
     std::string body; // the body
+
+    const std::string& getExtension() const;
+    const std::string& getQueryString() const;
+    const std::string& getContentType() const;
+    const std::string& getContentLength() const;
 };
 
 

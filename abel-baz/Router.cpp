@@ -2,6 +2,28 @@
 #include "sys/stat.h"
 #include "unistd.h"
 
+// std::string getScriptFilename() const
+// {
+//     return (file_path);
+// }
+
+// std::string getDocumentRoot() const
+// {
+//     if (server && !server->locations.empty())
+//         return server->locations[0].root; // Assuming the first location is the default one
+//     return "";
+// }
+
+// std::string getServerName() const
+// {
+//     if (server && !server->server_name.empty())
+//         return server->server_name[0];
+//     return "localhost";
+// }
+std::string RoutingResult::getExtension() const
+{
+    return (location->cgi_extension);
+}
 
 // DO: Match a server block based on host and port
 // RETURN: the first server block that matches the port, or the first server block matches the host if no port match is found
@@ -151,29 +173,31 @@ RoutingResult routingResult(const Config& config, const std::string& host,
     {
         result.file_path = finalPath(location, uri);
         result.is_redirect = false;
-        std::cout << "is dir ==> " << isDirectory(result.file_path) << std::endl;
+        // std::cout << "is dir ==> " << isDirectory(result.file_path) << std::endl;
         if (isDirectory(result.file_path))
         {
-            // TODO : remove this and allway check if the file exists 
+            // TODO : remove this and always check if the file exists
+            std::string index_path;
             if (!location.index.empty())
+                index_path = result.file_path + "/" + location.index;
+            else
+                index_path = result.file_path + "/index.html";
+
+            if (fileExists(index_path))
             {
-                std::string index_path = result.file_path + "/" + "index.html";
-
-                if (fileExists(index_path))
+                if (access(index_path.c_str(), R_OK) != 0)
                 {
-                    if (access(index_path.c_str(), R_OK) != 0)
-                    {
-                        std::cerr << "Access denied to index file: " << index_path << std::endl;
-                        error = ACCESS_DENIED;
-                    }
-
-                    result.use_autoindex = false;
-                    result.file_path = index_path;
-                    return result; // We're done
+                    std::cerr << "Access denied to index file: " << index_path << std::endl;
+                    error = ACCESS_DENIED;
                 }
+                result.use_autoindex = false;
+                result.file_path = index_path;
+                return result; // We're done
             }
 
+
             // Either index was empty or the index file was missing
+            // it will never reach here cuz index always exists
             if (location.autoindex)
             {
                 result.use_autoindex = true;
@@ -181,7 +205,8 @@ RoutingResult routingResult(const Config& config, const std::string& host,
             else
             {
                 error = NO_INDEX_FILE;
-                std::cerr << "No index file found and autoindex is disabled for: " << result.file_path << std::endl;
+                std::cerr << "No index file found and autoindex is disabled for: " 
+                    << result.file_path << std::endl;
             }
         }
         // if the file does not exist here that means that's ur prblm you provided the wrong path
@@ -189,7 +214,7 @@ RoutingResult routingResult(const Config& config, const std::string& host,
         {
             result.use_autoindex = false;
             result.is_directory = false; // It's a file, not a directory
-            std::cout << "result.file_path ===> " << result.file_path << std::endl;
+            // std::cout << "result.file_path ===> " << result.file_path << std::endl;
             if (!fileExists(result.file_path)){
                 error = FILE_NOT_FOUND;
                 std::cerr << "File does not exist: " << result.file_path << std::endl;

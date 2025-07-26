@@ -1,9 +1,10 @@
 #pragma once
 
 #include "sockets.hpp"
+#include "cgi_utils.hpp"
 
 
-// e.g, GET /index.html?key=value&key=value HTTP/1.1
+// e.g, GET /index.html/profile/name?key=value&key=value HTTP/1.1
 
 struct HttpRequest {
     std::string method;          // e.g., "GET"
@@ -11,6 +12,11 @@ struct HttpRequest {
     std::string http_version;    // e.g., "HTTP/1.1"
     std::map<std::string, std::string> headers;
     std::string body; // the body
+
+    const std::string& getExtension() const;
+    const std::string& getQueryString() const;
+    const std::string& getContentType() const;
+    const std::string& getContentLength() const;
 };
 
 

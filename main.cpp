@@ -6,6 +6,33 @@
 #include "abel-baz/Tokenizer.hpp"
 #include "ysahraou/HttpResponse.hpp"
 
+void response(int client_fd)
+{
+        // respond
+        printf("sending... === ===== === \n");
+        HttpResponse response(200, "OK");
+        // read file index.html put it in the body
+        std::fstream file("www/index.html");
+        std::string body;
+        if (file.is_open()) {
+            std::string line;
+            while (std::getline(file, line)) {
+                body += line + "\n";
+            }
+            file.close();
+        } else {
+            std::cerr << "Unable to open file" << std::endl;
+            response.statusCode = 404;
+            response.statusMessage = "Not Found";
+            body = "<h1>404 Not Found</h1>";
+            body += "<p>The requested resource was not found on this server.</p>";
+        }
+        response.setBody(body);
+        response.addHeader("Content-Type", "text/html");
+        response.addHeader("Connection", "close");
+        std::cout << "strlen(response) = " << strlen(response.toString().c_str()) << std::endl;
+        write(client_fd , response.toString().c_str() , strlen(response.toString().c_str()));
+}
 
 void loop(std::map <int, ConnectionInfo> &connections, Config &config)
 {
@@ -109,12 +136,10 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    // try {
+    try {
         Tokenizer tokenizer(argv[1]);
         Parser parser(tokenizer.tokenize());
         Config config = parser.parse();
-
-        // RoutingResult result = routingResult(config, "localhost", 8080, "/docs/index.html", "DELETE");
 
         // init servers
         std::vector<int> listening_sockets = initListeningSockets(config);
@@ -128,12 +153,10 @@ int main(int argc, char **argv) {
         }
         //loop
         loop(connections, config);
-    // }
-    // catch (const std::exception& e) {
-        // catch any exceptions thrown or segmentation faults
-        // std::cout << "Exception caught: " << e.what() << std::endl;
-        // std::cerr << "Error: " << e.what() << std::endl;
-        // return 1;
-    // }
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return 1;
+    }
     return 0;
 }
