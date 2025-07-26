@@ -44,27 +44,42 @@ void splithostport(const std::string& host, std::string& hostname, int& port) {
 }
 
 // generate autoindex HTML for a directory
-bool generateAutoIndex(const std::string& dirPath, std::string& body) {
+bool generateAutoIndex(const std::string& dirPath, const std::string& requestPath, std::string& body) {
     DIR* dir = opendir(dirPath.c_str());
     if (!dir) {
         std::cerr << "Failed to open directory: " << dirPath << std::endl;
         return false;
     }
     struct dirent* entry;
-    body = "<html><body><h1>Index of " + dirPath + "</h1><ul>";
+    body = "<!DOCTYPE html>\n"
+           "<html>\n"
+           "<head>\n"
+           "<meta charset=\"UTF-8\">\n"
+           "<title>Index of " + requestPath + "</title>\n"
+           "<style>\n"
+           "body { background: #f8f9fa; font-family: Arial, sans-serif; }\n"
+           ".container { max-width: 600px; margin: 60px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 30px; text-align: center; }\n"
+           "h1 { color: #007bff; margin-bottom: 30px; }\n"
+           "ul { list-style: none; padding: 0; }\n"
+           "li { margin: 12px 0; }\n"
+           "a { text-decoration: none; color: #333; font-size: 18px; transition: color 0.2s; }\n"
+           "a:hover { color: #007bff; }\n"
+           "</style>\n"
+           "</head>\n"
+           "<body>\n"
+           "<div class=\"container\">\n"
+           "<h1>Index of " + requestPath + "</h1>\n"
+           "<ul>\n";
     while ((entry = readdir(dir)) != NULL) {
-        std::cout << "entry->d_name = " << entry->d_name << std::endl;
-        // if (entry->d_name[0] == '.') continue; // skip hidden files
         std::string entryName = entry->d_name;
-        std::string href = entryName;
-        // If dirPath ends with '/', don't add another '/'
-        if (dirPath[dirPath.size() - 1] == '/')
-            href = dirPath + entryName;
-        else
-            href = dirPath + "/" + entryName;
-        body += "<li><a href=\"" + href + "\">" + entryName + "</a></li>";
+        if (entryName == "." || entryName == "..") continue;
+        std::string href = requestPath;
+        if (href.empty() || href[href.size() - 1] != '/')
+            href += "/";
+        href += entryName;
+        body += "<li><a href=\"" + href + "\">" + entryName + "</a></li>\n";
     }
-    body += "</ul></body></html>";
+    body += "</ul>\n</div>\n</body>\n</html>\n";
     closedir(dir);
     return true;
 }
@@ -98,6 +113,11 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
         response.statusCode = 301; // Moved Permanently
         response.statusMessage = "Moved Permanently";
         response.addHeader("Location", result.redirect_url);
+        if (request.is_keep_alive) {
+            response.addHeader("Connection", "keep-alive");
+        } else {
+            response.addHeader("Connection", "close");
+        }
         return;
     }
     if (result.use_autoindex) {
@@ -106,9 +126,14 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
         response.statusMessage = "OK";
         std::string body;
         std::cout << "result.file_path = " << result.file_path << std::endl;
-        if (generateAutoIndex(result.file_path, body)) {
+        if (generateAutoIndex(result.file_path, request.path, body)) {
             response.setBody(body);
             response.addHeader("Content-Type", "text/html");
+            if (request.is_keep_alive) {
+                response.addHeader("Connection", "keep-alive");
+            } else {
+                response.addHeader("Connection", "close");
+            }
         } else {
             response.statusCode = 500; // Internal Server Error
             response.statusMessage = "Internal Server Error";
@@ -130,6 +155,7 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
             response.setBody("<h1>404 Not Found</h1>");
         }
     }
+    std::cout << "file path: " << result.file_path << std::endl;
 }
 
 void response(int client_fd, HttpRequest &request, Config &config)
@@ -139,24 +165,8 @@ void response(int client_fd, HttpRequest &request, Config &config)
     printf("sending... === ===== === \n");
     HttpResponse response(200, "OK");
     handleGETRequest(response, request, config);
-    // read file index.html put it in the body
-    // std::fstream file("www/index.html");
-    // std::string body;
-    // if (file.is_open()) {
-    //     std::string line;
-    //     while (std::getline(file, line)) {
-    //         body += line + "\n";
-    //     }
-    //     file.close();
-    // } else {
-    //     std::cerr << "Unable to open file" << std::endl;
-    //     response.statusCode = 404;
-    //     response.statusMessage = "Not Found";
-    //     body = "<h1>404 Not Found</h1>";
-    // }
-    // response.setBody(body);
-    // response.addHeader("Content-Type", "text/html");
-    // response.addHeader("Connection", "close");
+
+    // sending the response
     std::cout << "strlen(response) = " << strlen(response.toString().c_str()) << std::endl;
     write(client_fd , response.toString().c_str() , strlen(response.toString().c_str()));
 }

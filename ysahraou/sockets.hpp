@@ -26,10 +26,11 @@ enum Type {
 };
 
 struct ConnectionInfo {
-     Type type;
-
+    Type type;
+    bool keep_alive;
+    time_t last_active;
     ConnectionInfo() {};
-    ConnectionInfo(Type t);
+    ConnectionInfo(Type t, bool ka);
 };
 
 

@@ -76,7 +76,8 @@ int parse_req(std::string request_data, int socket_fd, HttpRequest &request)
             "\r\n"
             "<h1>Bad Request</h1>";
         write(socket_fd , response_400 , strlen(response_400));
-        std::cout << "400 Bad Request res has send" << std::endl;
+        std::cout << "method ["<< method << "] is not allowed" << std::endl;
+        std::cout << "400 ==> Bad Request response has send" << std::endl;
         return 1;
     }
     if (http_version != "HTTP/1.1") {
@@ -128,6 +129,18 @@ int parse_req(std::string request_data, int socket_fd, HttpRequest &request)
     for (int i = 0; i < (int)headers_copy.size(); ++i) {
         std::cout << "header " << i << ": " << headers_copy.begin()->first << " : " << headers_copy.begin()->second << std::endl;
         headers_copy.erase(headers_copy.begin());
+    }
+
+    // check if the request is a keep-alive request
+    if (headers.count("Connection") && headers["Connection"] == "keep-alive")
+    {
+        request.is_keep_alive = true;
+        std::cout << "Connection is keep-alive" << std::endl;
+    }
+    else
+    {
+        request.is_keep_alive = false;
+        std::cout << "Connection is not keep-alive" << std::endl;
     }
     return 0;
 }

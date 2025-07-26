@@ -23,6 +23,13 @@ int init_Socket(int domain, int type, int protocol, char *port, char *interface)
         return -1;
     }
 
+    int yes = 1;
+    if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
+        perror("setsockopt");
+        close(socket_fd);
+        freeaddrinfo(res);
+        return -1;
+    }
     // Bind to the address
     if (bind(socket_fd, res->ai_addr, res->ai_addrlen) == -1) {
         perror("bind");
@@ -82,6 +89,6 @@ std::vector<int> initListeningSockets(const Config &config) {
         return listening_fds;
 } 
 
-ConnectionInfo::ConnectionInfo(Type t) : type(t) {
+ConnectionInfo::ConnectionInfo(Type t, bool ka) : type(t), keep_alive(ka) {
     // Constructor implementation
 }
