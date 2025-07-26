@@ -1,4 +1,7 @@
 #include "Parser.hpp"
+#include <unistd.h> // for getcwd
+#include <limits.h> // for PATH_MAX
+#include <cstring>   // for strlen
 
 void Parser::parseLocationRoot(LocationConfig& loc) {
     Token val = get();
@@ -6,10 +9,19 @@ void Parser::parseLocationRoot(LocationConfig& loc) {
         throw std::runtime_error("Expected value for root directive");
     if (val.text.empty())
         throw std::runtime_error("Root path cannot be empty");
-    if (val.text[0] != '/')
-        throw std::runtime_error("Root path must start with '/'");
-    
-    loc.root = val.text;
+
+    std::string rootPath = val.text;
+    if (!rootPath.empty() && rootPath[0] != '/') {
+        char cwd[PATH_MAX];
+        if (!getcwd(cwd, sizeof(cwd)))
+            throw std::runtime_error("Failed to get current working directory");
+        // Ensure there is a slash between cwd and rootPath
+        if (cwd[strlen(cwd) - 1] == '/')
+            rootPath = std::string(cwd) + rootPath;
+        else
+            rootPath = std::string(cwd) + "/" + rootPath;
+    }
+    loc.root = rootPath;
     if (get().type != SEMICOLON)
         throw std::runtime_error("Expected ';' after root");
 }
