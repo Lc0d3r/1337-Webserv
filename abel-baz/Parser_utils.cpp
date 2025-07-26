@@ -57,7 +57,6 @@ void Parser::parseLocation(ServerConfig& server) {
     bool methods_seen = false;
     bool upload_seen = false;
     bool redirect_seen = false;
-    bool cgi_seen = false;
     
     while (peek().type != BRACE_CLOSE && peek().type != END_OF_FILE) {
         Token lkey = get();
@@ -93,9 +92,6 @@ void Parser::parseLocation(ServerConfig& server) {
             redirect_seen = true;
             parseLocationRedirect(loc);
         } else if (lkey.text == "cgi_extension") {
-            if (cgi_seen)
-                throw std::runtime_error("Duplicate cgi_extension directive in location block");
-            cgi_seen = true;
             parseLocationCGI(loc);
         } else {
             throw std::runtime_error("Unknown location directive: " + lkey.text);

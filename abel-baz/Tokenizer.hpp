@@ -13,10 +13,10 @@ enum TokenType
 {
     KEYWORD,        // Known keyword like "server", "listen", etc.
     VALUE,          // Any string that is a value (like "127.0.0.1:8080")
-    BRACE_OPEN,     // {
-    BRACE_CLOSE,    // }
-    SEMICOLON,      // ;
-    EQUAL,          // =
+    BRACE_OPEN,
+    BRACE_CLOSE,
+    SEMICOLON,
+    EQUAL,
     END_OF_FILE     // Reached end of config
 };
 

@@ -118,7 +118,7 @@ void Parser::parseLocationCGI(LocationConfig& loc) {
     if (val.text[0] != '.')
         throw std::runtime_error("cgi_extension must start with '.'");
 
-    loc.cgi_extension = val.text;
+    loc.cgi_extension.push_back(val.text);
 
     if (get().type != SEMICOLON)
         throw std::runtime_error("Expected ';' after cgi_extension");
