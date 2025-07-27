@@ -7,7 +7,7 @@
 
 
 int posthandler(HttpRequest *req, RoutingResult *ser, HttpResponse &res);
-int handle_multiple_form_data(HttpRequest &req);
+int handle_multiple_form_data(HttpRequest &req, RoutingResult &ser);
 int parsechunked(HttpRequest &req, RoutingResult &ser);
 
 #endif

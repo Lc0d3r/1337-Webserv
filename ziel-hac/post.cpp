@@ -103,7 +103,7 @@ int posthandler(HttpRequest *req, RoutingResult *ser, HttpResponse &res)
 		}
         else if (!req->getContentLength().empty())
 		{
-            if (!handle_multiple_form_data(*req))
+            if (!handle_multiple_form_data(*req, *ser))
 			{
 				res.setTextBody("<h1>400 Bad Request</h1>");
 				res.statusCode = 400;
