@@ -29,6 +29,12 @@ struct ConnectionInfo {
     Type type;
     bool keep_alive;
     time_t last_active;
+    // if client
+    int portToConnect;
+    std::string hostToConnect;
+    // if server
+    int port;
+    std::string host;
     ConnectionInfo() {};
     ConnectionInfo(Type t, bool ka);
 };
@@ -36,4 +42,4 @@ struct ConnectionInfo {
 
 int init_Socket(int domain, int type, int protocol, char *port, char *interface);
 std::string intToString(int value);
-std::vector<int> initListeningSockets(const Config &config);
+std::vector<int> initListeningSockets(const Config &config, std::map<int, ConnectionInfo> &connections);

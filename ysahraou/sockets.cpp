@@ -49,7 +49,7 @@ std::string intToString(int value) {
     return oss.str();
 }
 
-std::vector<int> initListeningSockets(const Config &config) {
+std::vector<int> initListeningSockets(const Config &config, std::map<int, ConnectionInfo> &connections) {
         int socket_fd;
         std::vector<int> listening_fds;
         for  (int i=0;i < (int)config.servers.size(); i++)
@@ -66,6 +66,11 @@ std::vector<int> initListeningSockets(const Config &config) {
                               << config.servers[i].listens[j].listen_port << std::endl;
                     return std::vector<int>();
                 }
+                // Store the connection info
+                connections[socket_fd] = ConnectionInfo(LISTENER, false);
+                connections[socket_fd].port = config.servers[i].listens[j].listen_port;
+                connections[socket_fd].host = config.servers[i].listens[j].listen_host;
+
                 // Set the socket to non-blocking mode
                 int flags = fcntl(socket_fd, F_SETFL, O_NONBLOCK);
                 if (flags < 0) {

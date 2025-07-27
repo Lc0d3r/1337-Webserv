@@ -1,4 +1,5 @@
 #include "HttpRequest.hpp"
+#include "HttpResponse.hpp"
 
 std::string HttpRequest::getTransferEncoding() const
 {

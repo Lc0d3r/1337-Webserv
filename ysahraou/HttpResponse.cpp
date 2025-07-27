@@ -282,6 +282,7 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
         // Check the file format and read the file accordingly
         if (check_file_format(result.file_path) == "html" && read_file(result.file_path, response, "html")) {
             response.addHeader("Content-Type", "text/html");
+            response.addHeader("Content-Length", intToString(response.text_body.length()));
             if (request.is_keep_alive) {
                 response.addHeader("Connection", "keep-alive");
             } else {

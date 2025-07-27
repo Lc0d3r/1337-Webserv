@@ -10,7 +10,6 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
 {
     
     // create a pollfd victor to monitor the listening sockets
-    int timeout = 10; // 10 seconds timeout
     std::vector<struct pollfd> pollfds;
     std::map<int, ConnectionInfo>::iterator it;
     for (it = connections.begin(); it != connections.end(); ++it) {
@@ -22,7 +21,7 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
     // loop to accept connections
     while (1)
     {
-        int ready = poll(pollfds.data(), pollfds.size(), (timeout + 1) * 1000); // 11 seconds timeout
+        int ready = poll(pollfds.data(), pollfds.size(), 1000); // 1 second timeout
         if (ready < 0) {
             perror("poll");
             break;
@@ -44,17 +43,13 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
             // check if the fd client_fd timeout
             if (connections.count(pollfds[i].fd) &&
                 connections[pollfds[i].fd].type == CONNECTED &&
-                time(NULL) - connections[pollfds[i].fd].last_active > timeout) {
+                time(NULL) - connections[pollfds[i].fd].last_active > config.getKeepAliveTimeout("", connections[pollfds[i].fd].portToConnect)) {
                 std::cout << "Client socket " << pollfds[i].fd << " timed out." << std::endl;
                 close(pollfds[i].fd);
                 connections.erase(pollfds[i].fd);
                 pollfds.erase(pollfds.begin() + i);
                 --i;
                 continue;
-            }
-            else if (connections.count(pollfds[i].fd) &&
-                     connections[pollfds[i].fd].type == CONNECTED) {
-                std::cout << "Socket " << pollfds[i].fd << " is ready for reading..." << std::endl;
             }
             // Check for readable sockets
             if (pollfds[i].revents & POLLIN) {
@@ -70,6 +65,8 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                     fcntl(client_fd, F_SETFL, O_NONBLOCK); // set the socket to non-blocking mode
                     connections[client_fd] = ConnectionInfo(CONNECTED, true);
                     connections[client_fd].last_active = time(NULL);
+                    connections[client_fd].portToConnect = connections[pollfds[i].fd].port;
+                    connections[client_fd].hostToConnect = connections[pollfds[i].fd].host;
                     struct pollfd pfd;
                     pfd.fd = client_fd; // connected socket
                     pfd.events = POLLIN; // events to monitor
@@ -121,14 +118,11 @@ int main(int argc, char **argv) {
         Config config = parser.parse();
 
         // init servers
-        std::vector<int> listening_sockets = initListeningSockets(config);
+        std::map<int, ConnectionInfo> connections;
+        std::vector<int> listening_sockets = initListeningSockets(config, connections);
         if (listening_sockets.empty()) {
             std::cerr << "No listening sockets initialized." << std::endl;
             return 1;
-        }
-        std::map<int, ConnectionInfo> connections;
-        for (int i = 0; i < (int)listening_sockets.size(); ++i) {
-            connections.insert(std::make_pair(listening_sockets[i], ConnectionInfo(LISTENER, false)));
         }
         //loop
         loop(connections, config);
