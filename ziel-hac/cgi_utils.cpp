@@ -1,6 +1,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include <iostream>
 #include "cgi_utils.hpp"
 //DO: split function to split a string by a delimiter
 //RETURN: a vector of strings
@@ -17,7 +18,12 @@ std::vector<std::string> split(const std::string& str, const std::string& delimi
         }
         start = pos + delimiters.length();
     }
-    
+    if (start < str.length()) {
+        std::string part = str.substr(start);
+        if (!part.empty()) {
+            parts.push_back(part);
+        }
+    }
     return parts;
 }
 
