@@ -10,8 +10,10 @@ std::string HttpRequest::getTransferEncoding() const
 
 std::string HttpRequest::getBoundary() const
 {
-    if (headers.count("boundary")) {
-        return headers.at("boundary");
+    if (headers.count("Content-Type")) {
+        std::vector<std::string> parts = split(headers.at("Content-Type"), "; ");
+        std::vector<std::string> boundary = split(parts[1], "="); 
+        return boundary[1];
     }
     return std::string();
 }
@@ -27,7 +29,9 @@ std::string HttpRequest::getContentLength() const
 std::string HttpRequest::getContentType() const
 {
     if (headers.count("Content-Type")) {
-        return headers.at("Content-Type");
+        std::vector<std::string> parts = split(headers.at("Content-Type"), ";");
+
+        return parts[0];
     }
     return std::string(); 
 }

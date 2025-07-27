@@ -372,7 +372,7 @@ void response(int client_fd, HttpRequest &request, Config &config)
         std::string hostname;
         splithostport(request.headers.at("Host"), hostname, port);
         RoutingResult routing_result = routingResult(config, hostname, port, request.path, request.method, error);
-        if (error != NO_ERROR) {
+        if (error == NO_ERROR) {
             posthandler(&request, &routing_result, response);
         }
     }

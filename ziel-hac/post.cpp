@@ -34,7 +34,7 @@ int parsechunked(HttpRequest &req, RoutingResult &ser) //<-- i need to parse chu
 	return 1;
 }
 
-int handle_multiple_form_data(HttpRequest &req)
+int handle_multiple_form_data(HttpRequest &req, RoutingResult &ser)
 {
 	std::string boundary = req.getBoundary();
 	std::vector<std::string> parts = split(req.body, "--" + boundary);
@@ -46,11 +46,30 @@ int handle_multiple_form_data(HttpRequest &req)
 		{
 			std::string filename = headers_and_body[0].substr(n + 9, headers_and_body[0].size() - (n + 10));
 			std::cout << "Filename: " << filename << std::endl;
+			std::string upload_dir = ser.getUploadFile() + "/" + filename;
+			int fd = open(upload_dir.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
+			if (fd < 0)
+			{
+				upload_dir = "/tmp/" + filename;
+				fd = open(upload_dir.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
+				if (fd < 0)
+				{
+					std::cerr << "Failed to open file: " << filename << std::endl;
+					return 0; // Handle error appropriately
+				}
+			}
+			if (write(fd, headers_and_body[1].c_str(), headers_and_body[1].length()) < 0)
+			{
+				std::cerr << "Failed to write to file: " << filename << std::endl;
+				close(fd);
+				return 0; // Handle error appropriately
+			}
 		}
 		else
 		{
 			n = headers_and_body[0].find("name=\"");
 			std::string filename = headers_and_body[0].substr(n + 6, headers_and_body[0].size() - (n + 7));
+			std::cout << "Filename: " << filename << std::endl;
 			int fd = open(filename.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
 			if (fd < 0)
 			{
@@ -70,12 +89,11 @@ int handle_multiple_form_data(HttpRequest &req)
 
 int posthandler(HttpRequest *req, RoutingResult *ser, HttpResponse &res)
 {
-	std::cout << "Handling POST request" << std::endl;
-    if (req->getContentType() == "multipart/form-data")
+	if (req->getContentType() == "multipart/form-data")
     {
-        if (!req->getTransferEncoding().empty())
+		if (!req->getTransferEncoding().empty())
 		{
-            if(!parsechunked(*req, *ser))
+			if(!parsechunked(*req, *ser))
             {
 				res.setTextBody("<h1>400 Bad Request</h1>");
 				res.statusCode = 400;
