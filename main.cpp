@@ -80,13 +80,12 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                     // read the headers
                     std::string request_data;
                     readHeaders(request_data, client_fd);
+                    if (parse_req(request_data, client_fd, request))
+                        continue;
                     // read the body
                     std::string str_body;
                     readBody(request, str_body, client_fd);
-                    std::cout << request.body << std::endl;
                     std::cout << "====>requestData read successfully" << std::endl;
-                    if (parse_req(request_data, client_fd, request))
-                        continue;
                     // handle keep-alive connections
                     if (request.is_keep_alive) {
                         std::cout << "Connection is keep-alive setting keep_alive to true" << std::endl;
