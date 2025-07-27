@@ -1,4 +1,5 @@
 #include "HttpRequest.hpp"
+#include "HttpResponse.hpp"
 
 std::string HttpRequest::getTransferEncoding() const
 {
@@ -183,6 +184,7 @@ void readHeaders(std::string &request_data, int new_socket) {
 
 void readBody(HttpRequest &request, std::string &str_body, int new_socket) {
     int content_length = 0;
+    std::cout << "reading the body" << std::endl;
     if (request.headers.count("Content-Length"))
     {
         content_length = std::atoi(request.headers["Content-Length"].c_str());

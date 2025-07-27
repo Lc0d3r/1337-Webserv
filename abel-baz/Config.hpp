@@ -37,13 +37,15 @@ struct ServerConfig
     size_t max_body_size;
     int keep_alive_timeout; // in seconds, default 5 seconds
 
-    ServerConfig() : max_body_size(1000000), keep_alive_timeout(5) {} // example default: 1 MB
+    ServerConfig() : max_body_size(1000000), keep_alive_timeout(10) {} // example default: 1 MB
 };
 
 // Holds the full parsed config file
 struct Config
 {
     std::vector<ServerConfig> servers;
+
+    int getKeepAliveTimeout(std::string host, int port) const;
 };
 
 #endif // CONFIG_HPP
