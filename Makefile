@@ -1,7 +1,7 @@
 NAME = webserv
 
 CXX = c++
-CXXFLAGS = -std=c++98 -Iysahraou #-Wall -Wextra -Werror
+CXXFLAGS = -std=c++98 -Iysahraou -Wall -Wextra -Werror
 RM = rm -rf
 
 SRC = main.cpp ysahraou/sockets.cpp ysahraou/HttpRequest.cpp \

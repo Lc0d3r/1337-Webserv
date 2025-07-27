@@ -1,6 +1,6 @@
 #include "HttpRequest.hpp"
 
-const std::string& HttpRequest::getTransferEncoding() const
+std::string HttpRequest::getTransferEncoding() const
 {
     if (headers.count("Transfer-Encoding")) {
         return headers.at("Transfer-Encoding");
@@ -8,7 +8,7 @@ const std::string& HttpRequest::getTransferEncoding() const
     return std::string();
 }
 
-const std::string& HttpRequest::getBoundary() const
+std::string HttpRequest::getBoundary() const
 {
     if (headers.count("boundary")) {
         return headers.at("boundary");
@@ -16,7 +16,7 @@ const std::string& HttpRequest::getBoundary() const
     return std::string();
 }
 
-const std::string& HttpRequest::getContentLength() const
+std::string HttpRequest::getContentLength() const
 {
     if (headers.count("Content-Length")) {
         return headers.at("Content-Length");
@@ -24,7 +24,7 @@ const std::string& HttpRequest::getContentLength() const
     return std::string();
 }
 
-const std::string& HttpRequest::getContentType() const
+std::string HttpRequest::getContentType() const
 {
     if (headers.count("Content-Type")) {
         return headers.at("Content-Type");
@@ -32,7 +32,7 @@ const std::string& HttpRequest::getContentType() const
     return std::string(); 
 }
 
-const std::string& HttpRequest::getQueryString() const
+std::string HttpRequest::getQueryString() const
 {
     size_t pos = path.find('?');
     if (pos != std::string::npos) {
@@ -41,7 +41,7 @@ const std::string& HttpRequest::getQueryString() const
     return std::string();
 }
 
-const std::string& HttpRequest::getExtension() const
+std::string HttpRequest::getExtension() const
 {
     std::vector<std::string> parts = split(path, "/");
     for (std::vector<std::string>::iterator it = parts.begin(); it != parts.end(); ++it) {
