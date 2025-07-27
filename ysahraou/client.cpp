@@ -40,10 +40,11 @@ int main(int argc, char const *argv[])
     }
     printf("====start sending ====\n");
     const char* chunked_request =
-    "GET /Balanced_Webserv_Split-1.pdf HTTP/1.1\r\n"
+    "f /Balanced_Webserv_Split-1.pdf HTTP/1.1\r\n"
     "Host: localhost:8080\r\n"
     "Connection: keep-alive\r\n"
-    "\r\n";
+    "\r\n"
+    "fsdsdfsdfsdf";
     write(sock , chunked_request , strlen(chunked_request));
     printf("====end sending ====\n");
     printf("====start reseving====\n");

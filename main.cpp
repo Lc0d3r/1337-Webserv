@@ -81,8 +81,15 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                     std::string request_data;
                     readHeaders(request_data, client_fd);
                     if (parse_req(request_data, client_fd, request))
-                    
+                    {
+                        // close connection if parsing failed
+                        std::cout << "Failed to parse request, closing connection." << std::endl;
+                        close(client_fd);
+                        connections.erase(client_fd);
+                        pollfds.erase(pollfds.begin() + i);
+                        --i;
                         continue;
+                    }
                     // read the body
                     std::string str_body;
                     readBody(request, str_body, client_fd);
