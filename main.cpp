@@ -81,6 +81,7 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                     std::string request_data;
                     readHeaders(request_data, client_fd);
                     if (parse_req(request_data, client_fd, request))
+                    
                         continue;
                     // read the body
                     std::string str_body;
