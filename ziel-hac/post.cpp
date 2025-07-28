@@ -37,15 +37,20 @@ int parsechunked(HttpRequest &req, RoutingResult &ser) //<-- i need to parse chu
 int handle_multiple_form_data(HttpRequest &req, RoutingResult &ser)
 {
 	std::string boundary = req.getBoundary();
+	std::cout << "Boundary: " << boundary << std::endl;
+	std::cout << req.body << std::endl;
 	std::vector<std::string> parts = split(req.body, "--" + boundary);
+	// for (std::vector<std::string>::iterator it = parts.begin(); it != parts.end(); ++it)
+	// {
+	// 	std::cout << "Part: " << *it << "end" << std::endl;
+	// }
 	for(size_t i = 0; i < parts.size(); ++i)
 	{
 		size_t n = 0;
 		std::vector<std::string> headers_and_body = split_header_and_body(parts[i]);
 		if ((n = headers_and_body[0].find("filename=\"")) != std::string::npos)
 		{
-			std::string filename = headers_and_body[0].substr(n + 9, headers_and_body[0].size() - (n + 10));
-			std::cout << "Filename: " << filename << std::endl;
+			std::string filename = headers_and_body[0].substr(n + 10,(headers_and_body[0].find("\"", n + 10)) - (n + 10));
 			std::string upload_dir = ser.getUploadFile() + "/" + filename;
 			int fd = open(upload_dir.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
 			if (fd < 0)
@@ -68,7 +73,7 @@ int handle_multiple_form_data(HttpRequest &req, RoutingResult &ser)
 		else
 		{
 			n = headers_and_body[0].find("name=\"");
-			std::string filename = headers_and_body[0].substr(n + 6, headers_and_body[0].size() - (n + 7));
+			std::string filename = headers_and_body[0].substr(n + 7, (headers_and_body[0].find("\"", n + 7)) - (n + 7));
 			std::cout << "Filename: " << filename << std::endl;
 			int fd = open(filename.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
 			if (fd < 0)
