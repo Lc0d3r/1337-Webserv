@@ -85,10 +85,20 @@ void Parser::parseLocationUpload(LocationConfig& loc) {
         throw std::runtime_error("Expected value for upload_dir");
     if (val.text.empty())
         throw std::runtime_error("upload_dir cannot be empty");
-    if (val.text[0] != '/')
-        throw std::runtime_error("upload_dir path must start with '/'");
 
-    loc.upload_dir = val.text;
+    std::string uploadDir = val.text;
+    char cwd[PATH_MAX];
+    if (!getcwd(cwd, sizeof(cwd)))
+        throw std::runtime_error("Failed to get current working directory");
+    if (uploadDir[0] != '/')
+    {
+        if (cwd[strlen(cwd) - 1] == '/')
+            uploadDir = std::string(cwd) + uploadDir;
+        else
+            uploadDir = std::string(cwd) + "/" + uploadDir;
+    }
+
+    loc.upload_dir = uploadDir;
 
     if (get().type != SEMICOLON)
         throw std::runtime_error("Expected ';' after upload_dir");
