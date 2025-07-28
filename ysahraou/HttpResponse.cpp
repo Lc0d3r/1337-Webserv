@@ -256,6 +256,7 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
         if (generateAutoIndex(result.file_path, request.path, body)) {
             response.setTextBody(body);
             response.addHeader("Content-Type", "text/html");
+            response.addHeader("Content-Length", intToString(body.length()));
             if (request.is_keep_alive) {
                 response.addHeader("Connection", "keep-alive");
             } else {
