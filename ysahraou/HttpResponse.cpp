@@ -84,12 +84,38 @@ std::string check_file_format(const std::string& file_path) {
     if (pos == std::string::npos) {
         return ""; // No extension found
     }
-    std::cout << "file_path ===>> " << file_path.substr(pos + 1) << std::endl;
     return file_path.substr(pos + 1);
 }
 
-bool read_file(const std::string& file_path, HttpResponse& response, const std::string& format) {
-    if (format == "html" || format == "txt") {
+int readbinaryortext(const std::string& format) {
+    if (format == "mp4" || format == "gpg" || format == "png" || format == "jpeg" || format == "jpg" || format == "gif" || format == "ico") {
+        return 1; // Binary
+    } else if (format == "html" || format == "txt" || format == "css" || format == "js" || format == "json") {
+        return 0; // Text
+    }
+    return -1; // Unsupported format
+}
+
+std::streamsize Check_file_size(const std::string& file_path) {
+    std::ifstream file(file_path.c_str(), std::ios::binary );
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file: " << file_path << std::endl;
+        return 0;
+    }
+    file.seekg(0, std::ios::end);
+    std::streamsize size = file.tellg();
+    file.seekg(0, std::ios::beg);
+    if (size <= 0) {
+        std::cerr << "File is empty or error reading size: " << file_path << std::endl;
+        return 0;
+    }
+    std::cout << "File size: " << size * 1e-6 << " MB" << std::endl;
+    return size;
+}
+
+bool read_file(const std::string& file_path, HttpResponse& response) {
+    Check_file_size(file_path);
+    if (readbinaryortext(check_file_format(file_path)) == 0) {
         std::ifstream file(file_path.c_str());
         if (!file.is_open()) {
             std::cerr << "Failed to open text file: " << file_path << std::endl;
@@ -102,132 +128,62 @@ bool read_file(const std::string& file_path, HttpResponse& response, const std::
         response.is_binary = false; // Mark the response as text
         return true;
     }
-    else if (format == "pdf") {
+    else if (readbinaryortext(check_file_format(file_path)) == 1 || readbinaryortext(check_file_format(file_path)) == -1) {
         std::ifstream file(file_path.c_str(), std::ios::binary);
         if (!file.is_open()) {
-            std::cerr << "Failed to open PDF file: " << file_path << std::endl;
+            std::cerr << "Failed to open binary file: " << file_path << std::endl;
             return false;
         }
-
+        std::cout << "Reading binary file: " << file_path << std::endl;
         // Go to the end to get the size
         file.seekg(0, std::ios::end);
         std::streamsize size = file.tellg();
         file.seekg(0, std::ios::beg);
 
         if (size <= 0) {
-            std::cerr << "PDF file is empty or error reading size: " << file_path << std::endl;
+            std::cerr << "binary file is empty or error reading size: " << file_path << std::endl;
             return false;
         }
 
         response.binary_body.resize(size); // Allocate space
         if (!file.read(response.binary_body.data(), size)) {
-            std::cerr << "Error reading PDF file: " << file_path << std::endl;
+            std::cerr << "Error reading binary file: " << file_path << std::endl;
             return false;
         }
 
         response.is_binary = true; // Mark the response as binary
-        std::cout << "PDF file read successfully: " << file_path << " (" << size << " bytes)\n";
-        return true;
-    } 
-    else if (format == "jpg" || format == "jpeg" || format == "png") {
-        std::ifstream file(file_path.c_str(), std::ios::binary);
-        if (!file.is_open()) {
-            std::cerr << "Failed to open image file: " << file_path << std::endl;
-            return false;
+        std::cout << "binary file binary successfully: " << file_path << " (" << size * 1e-6 << " MB)" << std::endl;
+        if (readbinaryortext(check_file_format(file_path)) == -1) {
+            std::cout << "Adding Content-Disposition header for file download: " << file_path << std::endl;
+            response.addHeader("Content-disposition", "attachment; filename=\"" + file_path.substr(file_path.find_last_of('/') + 1) + "\"");
         }
-
-        // Go to the end to get the size
-        file.seekg(0, std::ios::end);
-        std::streamsize size = file.tellg();
-        file.seekg(0, std::ios::beg);
-
-        if (size <= 0) {
-            std::cerr << "Image file is empty or error reading size: " << file_path << std::endl;
-            return false;
-        }
-
-        response.binary_body.resize(size); // Allocate space
-        if (!file.read(response.binary_body.data(), size)) {
-            std::cerr << "Error reading image file: " << file_path << std::endl;
-            return false;
-        }
-
-        response.is_binary = true; // Mark the response as binary
-        std::cout << "Image file read successfully: " << file_path << " (" << size << " bytes)\n";
-        return true;
-    }
-    else if (format == "css") {
-        std::ifstream file(file_path.c_str());
-        if (!file.is_open()) {
-            std::cerr << "Failed to open CSS file: " << file_path << std::endl;
-            return false;
-        }
-        std::cout << "Reading CSS file: " << file_path << std::endl;
-        std::stringstream buffer;
-        buffer << file.rdbuf();
-        response.setTextBody(buffer.str());
-        response.is_binary = false; // Mark the response as text
-        return true;
-    }
-    else if (format == "js") {
-        std::ifstream file(file_path.c_str());
-        if (!file.is_open()) {
-            std::cerr << "Failed to open JS file: " << file_path << std::endl;
-            return false;
-        }
-        std::cout << "Reading JS file: " << file_path << std::endl;
-        std::stringstream buffer;
-        buffer << file.rdbuf();
-        response.setTextBody(buffer.str());
-        response.is_binary = false; // Mark the response as text
-        return true;
-    }
-    else if (format == "json") {
-        std::ifstream file(file_path.c_str());
-        if (!file.is_open()) {
-            std::cerr << "Failed to open JSON file: " << file_path << std::endl;
-            return false;
-        }
-        std::cout << "Reading JSON file: " << file_path << std::endl;
-        std::stringstream buffer;
-        buffer << file.rdbuf();
-        response.setTextBody(buffer.str());
-        response.is_binary = false; // Mark the response as text
-        return true;
-    }
-    else if (format == "mp4") {
-        std::ifstream file(file_path.c_str(), std::ios::binary);
-        if (!file.is_open()) {
-            std::cerr << "Failed to open MP4 file: " << file_path << std::endl;
-            return false;
-        }
-
-        // Go to the end to get the size
-        file.seekg(0, std::ios::end);
-        std::streamsize size = file.tellg();
-        file.seekg(0, std::ios::beg);
-
-        if (size <= 0) {
-            std::cerr << "MP4 file is empty or error reading size: " << file_path << std::endl;
-            return false;
-        }
-
-        response.binary_body.resize(size); // Allocate space
-        if (!file.read(response.binary_body.data(), size)) {
-            std::cerr << "Error reading MP4 file: " << file_path << std::endl;
-            return false;
-        }
-
-        response.is_binary = true; // Mark the response as binary
-        std::cout << "MP4 file read successfully: " << file_path << " (" << size << " bytes)\n";
         return true;
     }
     else {
-        std::cerr << "Unsupported file format: " << format << std::endl;
+        std::cerr << "Unsupported file format: " << file_path << std::endl;
         return false;
     }
 }
 
+bool resumeSending(ConnectionInfo connections, std::vector<char> &buffer) {
+    if (readbinaryortext(check_file_format(connections.file_path)) == 1 || readbinaryortext(check_file_format(connections.file_path)) == -1) {
+        std::cout << "Resuming binary file sending: " << connections.file_path << std::endl;
+        if (connections.pos < Check_file_size(connections.file_path)) {
+            std::ifstream file(connections.file_path.c_str(), std::ios::binary);
+            if (!file.is_open()) {
+                std::cerr << "Failed to open binary file: " << connections.file_path << std::endl;
+                return false;
+            }
+            file.seekg(connections.pos);
+            // Implement binary file sending logic here
+            file.read(buffer.data(), buffer.size());
+            connections.pos += file.gcount();
+        }
+    } else {
+        std::cout << "Resuming text file sending: " << connections.file_path << std::endl;
+    }
+    return true;
+}
 
 void handleGETRequest(HttpResponse& response, const HttpRequest& request, const Config& config) {
     (void)response;
@@ -281,83 +237,42 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
         std::string body;
 
         // Check the file format and read the file accordingly
-        if (check_file_format(result.file_path) == "html" && read_file(result.file_path, response, "html")) {
-            response.addHeader("Content-Type", "text/html");
-            response.addHeader("Content-Length", intToString(response.text_body.length()));
-            if (request.is_keep_alive) {
-                response.addHeader("Connection", "keep-alive");
-            } else {
-                response.addHeader("Connection", "close");
-            }
-        } else if (check_file_format(result.file_path) == "pdf" && read_file(result.file_path, response, "pdf")) {
-            response.addHeader("Content-Type", "application/pdf");
-            response.addHeader("Content-Length", intToString(response.binary_body.size()));
-            if (request.is_keep_alive) {
-                response.addHeader("Connection", "keep-alive");
-            } else {
-                response.addHeader("Connection", "close");
-            }
-        } else if (check_file_format(result.file_path) == "txt" && read_file(result.file_path, response, "txt")) {
-            response.addHeader("Content-Type", "text/plain");
-            response.addHeader("Content-Length", intToString(body.length()));
-            if (request.is_keep_alive) {
-                response.addHeader("Connection", "keep-alive");
-            } else {
-                response.addHeader("Connection", "close");
-            }
-        } else if ((check_file_format(result.file_path) == "jpg" || check_file_format(result.file_path) == "jpeg" || check_file_format(result.file_path) == "png") && read_file(result.file_path, response, check_file_format(result.file_path))) {
-            response.addHeader("Content-Type", "image/" + check_file_format(result.file_path));
-            response.addHeader("Content-Length", intToString(response.binary_body.size()));
-            if (request.is_keep_alive) {
-                response.addHeader("Connection", "keep-alive");
-            } else {
-                response.addHeader("Connection", "close");
-            }
-        } else if (check_file_format(result.file_path) == "css" && read_file(result.file_path, response, "css")) {
-            response.addHeader("Content-Type", "text/css");
-            if (request.is_keep_alive) {
-                response.addHeader("Connection", "keep-alive");
-            } else {
-                response.addHeader("Connection", "close");
-            }
-        }
-        else if (check_file_format(result.file_path) == "js" && read_file(result.file_path, response, "js")) {
-            response.addHeader("Content-Type", "application/javascript");
-            if (request.is_keep_alive) {
-                response.addHeader("Connection", "keep-alive");
-            } else {
-                response.addHeader("Connection", "close");
-            }
-        } else if (check_file_format(result.file_path) == "json" && read_file(result.file_path, response, "json")) {
-            response.addHeader("Content-Type", "application/json");
-            if (request.is_keep_alive) {
-                response.addHeader("Connection", "keep-alive");
-            } else {
-                response.addHeader("Connection", "close");
-            }
-        } else if (check_file_format(result.file_path) == "mp4" && read_file(result.file_path, response, "mp4")) {
-            response.addHeader("Content-Type", "video/mp4");
-            response.addHeader("Content-Length", intToString(response.binary_body.size()));
-            if (request.is_keep_alive) {
-                response.addHeader("Connection", "keep-alive");
-            } else {
-                response.addHeader("Connection", "close");
-            }
+        if (read_file(result.file_path, response)) {
+            if (check_file_format(result.file_path) == "html" || 
+                check_file_format(result.file_path) == "txt" || 
+                check_file_format(result.file_path) == "css") { 
+                response.addHeader("Content-Type", "application/" + check_file_format(result.file_path));
+            } else if (check_file_format(result.file_path) == "js" || 
+                       check_file_format(result.file_path) == "json") {
+                response.addHeader("Content-Type", "application/" + check_file_format(result.file_path));
+            } else if (check_file_format(result.file_path) == "gpg" || 
+                       check_file_format(result.file_path) == "png" || 
+                       check_file_format(result.file_path) == "jpeg" || 
+                       check_file_format(result.file_path) == "jpg" || 
+                       check_file_format(result.file_path) == "gif") {
+                response.addHeader("Content-Type", "image/" + check_file_format(result.file_path));
+            } else if (check_file_format(result.file_path) == "mp4") {
+                response.addHeader("Content-Type", "video/mp4");
+                if (response.is_binary)
+                    response.addHeader("Content-Length", intToString(response.binary_body.size()));
+                else
+                    response.addHeader("Content-Length", intToString(response.text_body.length()));
+            } 
         }
         else {
-            response.statusCode = 404; // Not Found
-            response.statusMessage = "Not Found";
-            response.addHeader("Content-Type", "text/html");
-            response.addHeader("Content-Length", "23");
+                response.statusCode = 404; // Not Found
+                response.statusMessage = "Not Found";
+                response.addHeader("Content-Type", "text/html");
+                response.setTextBody("<h1>404 Not Found</h1>");
+                response.addHeader("Content-Length", intToString(response.text_body.length()));
+            }
             if (request.is_keep_alive) {
                 response.addHeader("Connection", "keep-alive");
             } else {
-                response.addHeader("Connection", "close");
-            }
-            response.setTextBody("<h1>404 Not Found</h1>");
+            response.addHeader("Connection", "close");
         }
+    // std::cout << "file path: " << result.file_path << std::endl;
     }
-    std::cout << "file path: " << result.file_path << std::endl;
 }
 
 void response(int client_fd, HttpRequest &request, Config &config)

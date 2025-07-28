@@ -20,6 +20,7 @@
 #include <sys/types.h>
 #include "../abel-baz/Config.hpp"
 
+
 enum Type {
     LISTENER,  // Listening socket
     CONNECTED  // Connected socket
@@ -35,7 +36,10 @@ struct ConnectionInfo {
     // if server
     int port;
     std::string host;
-    ConnectionInfo() {};
+    std::streamsize pos;
+    bool is_old;
+    std::string file_path;
+    ConnectionInfo() ;
     ConnectionInfo(Type t, bool ka);
 };
 

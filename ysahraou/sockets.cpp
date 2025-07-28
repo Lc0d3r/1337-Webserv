@@ -94,6 +94,8 @@ std::vector<int> initListeningSockets(const Config &config, std::map<int, Connec
         return listening_fds;
 } 
 
-ConnectionInfo::ConnectionInfo(Type t, bool ka) : type(t), keep_alive(ka) {
+ConnectionInfo::ConnectionInfo(Type t, bool ka) : type(t), keep_alive(ka), pos(0), is_old(false) {
     // Constructor implementation
 }
+
+ConnectionInfo::ConnectionInfo() : pos(0), is_old(false) {}
