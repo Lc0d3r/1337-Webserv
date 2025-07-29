@@ -21,7 +21,7 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
     // loop to accept connections
     while (1)
     {
-        int ready = poll(pollfds.data(), pollfds.size(), 1000); // 1 second timeout
+        int ready = poll(pollfds.data(), pollfds.size(), 50); // 50 ms timeout
         if (ready < 0) {
             perror("poll");
             break;
@@ -105,7 +105,21 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                     
                     // response
                     std::cout << "====>request parsed successfully" << std::endl;
-                    response(pollfds[i].fd, request, config);
+                    response(pollfds[i].fd, request, config, connections[pollfds[i].fd]);
+                }
+            }
+            else if (connections[pollfds[i].fd].type == CONNECTED && connections[pollfds[i].fd].is_old) {
+                std::cout << "Resuming sending file for socket: " << pollfds[i].fd << std::endl;
+                // buffer to hold the data to be sent
+                std::vector<char> buffer(CHUNK_SIZE);
+                if (resumeSending(connections[pollfds[i].fd], buffer, pollfds[i].fd))
+                    connections[pollfds[i].fd].last_active = time(NULL);
+                if (!connections[pollfds[i].fd].is_old) {
+                    std::cout << "File sending completed for socket: " << pollfds[i].fd << std::endl;
+                    close(pollfds[i].fd);
+                    connections.erase(pollfds[i].fd);
+                    pollfds.erase(pollfds.begin() + i);
+                    --i;
                 }
             }
         }

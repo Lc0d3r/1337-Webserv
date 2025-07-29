@@ -147,11 +147,10 @@ int parse_req(std::string request_data, int socket_fd, HttpRequest &request)
     }
     request.headers = headers;
 
-    // for (auto e : headers)
-    //     std::cout << "first => " << e.first << " second => " << e.second << std::endl;
+    // print the headers
     std::map<std::string, std::string> headers_copy = request.headers;
     for (int i = 0; i < (int)headers_copy.size(); ++i) {
-        std::cout << "header " << i << ": " << headers_copy.begin()->first << " : " << headers_copy.begin()->second << std::endl;
+        std::cout << "header [" << i << "]: [" << headers_copy.begin()->first << "] : [" << headers_copy.begin()->second << "]" << std::endl;
         headers_copy.erase(headers_copy.begin());
     }
 

@@ -6,6 +6,8 @@
 #include "sockets.hpp"
 #include "../abel-baz/Router.hpp"
 
+#define CHUNK_SIZE 1024 * 1024 // 1 MB
+#define MAX_TO_SEND 1024 * 64
 struct HttpResponse {
     std::string httpVersion;
     int statusCode;
@@ -28,5 +30,6 @@ struct HttpResponse {
 };
 
 
-void response(int client_fd,HttpRequest &request, Config &config);
+void response(int client_fd,HttpRequest &request, Config &config, ConnectionInfo &connections);
 void splithostport(const std::string& host, std::string& hostname, int& port);
+bool resumeSending(ConnectionInfo& connections, std::vector<char> &buffer, int client_fd);

@@ -109,12 +109,19 @@ std::streamsize Check_file_size(const std::string& file_path) {
         std::cerr << "File is empty or error reading size: " << file_path << std::endl;
         return 0;
     }
-    std::cout << "File size: " << size * 1e-6 << " MB" << std::endl;
+    std::cout << "File size: " << size << " bytes" << std::endl;
     return size;
 }
 
-bool read_file(const std::string& file_path, HttpResponse& response) {
-    Check_file_size(file_path);
+std::string streamsizeToString(std::streamsize size) {
+    std::ostringstream oss;
+    oss << size;
+    return oss.str();
+}
+
+bool read_file(const std::string& file_path, HttpResponse& response, ConnectionInfo& connections) {
+    response.addHeader("Content-Length", streamsizeToString(Check_file_size(file_path)));
+    std::cout << "content Length: [" << response.headers["Content-Length"] << "]" << std::endl;
     if (readbinaryortext(check_file_format(file_path)) == 0) {
         std::ifstream file(file_path.c_str());
         if (!file.is_open()) {
@@ -135,24 +142,23 @@ bool read_file(const std::string& file_path, HttpResponse& response) {
             return false;
         }
         std::cout << "Reading binary file: " << file_path << std::endl;
-        // Go to the end to get the size
-        file.seekg(0, std::ios::end);
-        std::streamsize size = file.tellg();
-        file.seekg(0, std::ios::beg);
 
-        if (size <= 0) {
-            std::cerr << "binary file is empty or error reading size: " << file_path << std::endl;
-            return false;
-        }
-
-        response.binary_body.resize(size); // Allocate space
-        if (!file.read(response.binary_body.data(), size)) {
+        response.binary_body.resize(MAX_TO_SEND); // Allocate space
+        if (!file.read(response.binary_body.data(), MAX_TO_SEND)) {
             std::cerr << "Error reading binary file: " << file_path << std::endl;
             return false;
         }
+        std::streamsize bytes_read = file.gcount();
+        if (bytes_read > 0 && !file.eof() && connections.pos < file.tellg()) {
+            std::cout << "Set info to resume sending: " << file_path << std::endl;
+            connections.pos += bytes_read;
+            connections.file_path = file_path;
+            connections.is_old = true;
+        }
+            
 
         response.is_binary = true; // Mark the response as binary
-        std::cout << "binary file binary successfully: " << file_path << " (" << size * 1e-6 << " MB)" << std::endl;
+        std::cout << "binary file readed successfully: " << file_path << " (" << MAX_TO_SEND  << " bytes read)" << std::endl;
         if (readbinaryortext(check_file_format(file_path)) == -1) {
             std::cout << "Adding Content-Disposition header for file download: " << file_path << std::endl;
             response.addHeader("Content-disposition", "attachment; filename=\"" + file_path.substr(file_path.find_last_of('/') + 1) + "\"");
@@ -165,8 +171,8 @@ bool read_file(const std::string& file_path, HttpResponse& response) {
     }
 }
 
-bool resumeSending(ConnectionInfo connections, std::vector<char> &buffer) {
-    if (readbinaryortext(check_file_format(connections.file_path)) == 1 || readbinaryortext(check_file_format(connections.file_path)) == -1) {
+bool resumeSending(ConnectionInfo &connections, std::vector<char> &buffer, int client_fd) {
+    // if (readbinaryortext(check_file_format(connections.file_path)) == 1 || readbinaryortext(check_file_format(connections.file_path)) == -1) {
         std::cout << "Resuming binary file sending: " << connections.file_path << std::endl;
         if (connections.pos < Check_file_size(connections.file_path)) {
             std::ifstream file(connections.file_path.c_str(), std::ios::binary);
@@ -177,15 +183,32 @@ bool resumeSending(ConnectionInfo connections, std::vector<char> &buffer) {
             file.seekg(connections.pos);
             // Implement binary file sending logic here
             file.read(buffer.data(), buffer.size());
-            connections.pos += file.gcount();
+            std::streamsize bytes_read = file.gcount();
+
+            if (bytes_read > 0) {
+                // Send these bytes (e.g. using write/send)
+                int bytes_written = write(client_fd, buffer.data(), bytes_read);
+                if (bytes_written > 0)
+                    connections.pos += bytes_written;
+
+                std::cout << "Sent " << bytes_read << " bytes, pos now: " << connections.pos << std::endl;
+            }
+
+            if (file.eof() || connections.pos >= Check_file_size(connections.file_path)) {
+                std::cout << "Finished sending the file." << std::endl;
+                connections.is_old = false;
+                connections.pos = 0;
+                connections.file_path.clear();
+                return false;
+            }
         }
-    } else {
-        std::cout << "Resuming text file sending: " << connections.file_path << std::endl;
-    }
+    // } else {
+    //     std::cout << "Resuming text file sending: " << connections.file_path << std::endl;
+    // }
     return true;
 }
 
-void handleGETRequest(HttpResponse& response, const HttpRequest& request, const Config& config) {
+void handleGETRequest(HttpResponse& response, const HttpRequest& request, const Config& config, ConnectionInfo& connections) {
     (void)response;
     int port;
     std::string hostname;
@@ -229,19 +252,20 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
             response.setTextBody("<h1>500 Internal Server Error</h1>");
         }
         return;
-    }
-    else {
+    } 
+    // Not using autoindex an absolute path
+    else { 
         std::cout << "Not using autoindex for: " << result.file_path << std::endl;
         response.statusCode = 200; // OK
         response.statusMessage = "OK";
         std::string body;
 
         // Check the file format and read the file accordingly
-        if (read_file(result.file_path, response)) {
+        if (read_file(result.file_path, response, connections)) {
             if (check_file_format(result.file_path) == "html" || 
                 check_file_format(result.file_path) == "txt" || 
                 check_file_format(result.file_path) == "css") { 
-                response.addHeader("Content-Type", "application/" + check_file_format(result.file_path));
+                response.addHeader("Content-Type", "text/" + check_file_format(result.file_path));
             } else if (check_file_format(result.file_path) == "js" || 
                        check_file_format(result.file_path) == "json") {
                 response.addHeader("Content-Type", "application/" + check_file_format(result.file_path));
@@ -253,11 +277,7 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
                 response.addHeader("Content-Type", "image/" + check_file_format(result.file_path));
             } else if (check_file_format(result.file_path) == "mp4") {
                 response.addHeader("Content-Type", "video/mp4");
-                if (response.is_binary)
-                    response.addHeader("Content-Length", intToString(response.binary_body.size()));
-                else
-                    response.addHeader("Content-Length", intToString(response.text_body.length()));
-            } 
+            }
         }
         else {
                 response.statusCode = 404; // Not Found
@@ -272,17 +292,18 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
             response.addHeader("Connection", "close");
         }
     // std::cout << "file path: " << result.file_path << std::endl;
+    // std::cout << "content lingth: [" << response.headers["Content-Length"] << "]" << std::endl;
     }
 }
 
-void response(int client_fd, HttpRequest &request, Config &config)
+void response(int client_fd, HttpRequest &request, Config &config, ConnectionInfo &connections)
 {
     (void)request;
     (void)config;
     printf("===========\[sending...]===========\n");
     HttpResponse response(200, "OK");
     if (request.method == "GET") {
-        handleGETRequest(response, request, config);
+        handleGETRequest(response, request, config, connections);
     } else if (request.method == "POST") {
         errorType error = NO_ERROR;
         int port;
