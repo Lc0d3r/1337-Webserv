@@ -111,7 +111,7 @@ bool supported_file_format(const std::string& file_path) {
     std::string extension = check_file_format(file_path);
     return (extension == "txt" || extension == "pdf" || extension == "jpg" || extension == "png" || 
             extension == "html" || extension == "css" || extension == "js" || extension == "ico" ||
-            extension == "json" || extension == "gpg" || extension == "mp4" || extension == "gif");
+            extension == "json" || extension == "gpg" || extension == "mp4" || extension == "gif" || extension == "jpeg");
 }
 
 bool read_file(const std::string& file_path, HttpResponse& response, ConnectionInfo& connections) {
@@ -194,7 +194,7 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
     std::string hostname;
     splithostport(request.headers.at("Host"), hostname, port);
     errorType error = NO_ERROR;
-    RoutingResult result = routingResult(config, hostname, port, request.path, request.method, error);
+    RoutingResult result = routingResult(config, hostname, port, request.path_without_query, request.method, error);
     if (result.is_redirect) {
         response.statusCode = 301; // Moved Permanently
         response.statusMessage = "Moved Permanently";
@@ -212,7 +212,7 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
         response.statusMessage = "OK";
         std::string body;
         std::cout << "result.file_path = " << result.file_path << std::endl;
-        if (generateAutoIndex(result.file_path, request.path, body)) {
+        if (generateAutoIndex(result.file_path, result.file_path, body)) {
             response.setTextBody(body);
             response.addHeader("Content-Type", "text/html");
             response.addHeader("Content-Length", intToString(body.length()));

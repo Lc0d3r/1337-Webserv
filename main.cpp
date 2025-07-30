@@ -104,7 +104,9 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                     } else {
                         connections[pollfds[i].fd].keep_alive = false;
                     }
-                    std::string str = convertPath(request.path);
+
+                    // decode the request path
+                    std::string str = decodePath(request.path);
                     if (str.empty()) {
                         std::cerr << "Invalid path in request: " << request.path << std::endl;
                         close(client_fd);
@@ -114,6 +116,7 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                         continue;
                     }
                     request.path = str;
+                    removeQueryString(request);
                     
                     // response
                     std::cout << "====>request parsed successfully" << std::endl;
