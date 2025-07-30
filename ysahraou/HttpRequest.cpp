@@ -226,3 +226,12 @@ void readBody(HttpRequest &request, std::string &str_body, int new_socket) {
     }
     std::cout << "done reading the body" << std::endl;
 }
+
+void removeQueryString(HttpRequest &request) {
+    size_t pos = request.path.find('?');
+    if (pos != std::string::npos) {
+        request.path_without_query = request.path.substr(0, pos);
+    } else {
+        request.path_without_query = request.path;
+    }
+}
