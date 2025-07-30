@@ -1,9 +1,18 @@
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
 
+std::string HttpRequest::getCookie() const
+{
+if (headers.count("Cookie")) {
+    return headers.at("Cookie");
+}
+return std::string();
+}
+
 std::string HttpRequest::getTransferEncoding() const
 {
     if (headers.count("Transfer-Encoding")) {
+        std::cout << "Transfer-Encodingnigger: " << headers.at("Transfer-Encoding") << std::endl;
         return headers.at("Transfer-Encoding");
     }
     return std::string();

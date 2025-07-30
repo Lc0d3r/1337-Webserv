@@ -20,6 +20,7 @@ struct HttpRequest {
     std::string getContentLength() const;
     std::string getBoundary() const;
     std::string getTransferEncoding() const;
+    std::string getCookie() const;
 };
 
 

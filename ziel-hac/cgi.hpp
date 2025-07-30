@@ -64,25 +64,23 @@ class Cgi
 		std::vector<std::string>			_envVector;
 		int									output_fd[2];
 		int									input_fd[2];
+		int									valid_checker;
 
     public:
-		std::string							getScriptFilename(RoutingResult *serv) const;
-		void								setEnv(RoutingResult *serv, HttpRequest *req);
-		bool								_check_extra_path(HttpRequest *rep);
-		int									_checker(RoutingResult *serv, HttpRequest *req);
-		int									_checkExtention(const std::string &path, const std::string &ext);
+		std::string							getScriptFilename(HttpRequest &req) const;
+		void								setEnv(RoutingResult &serv, HttpRequest &req);
+		bool								_check_extra_path(HttpRequest &rep);
+		int									_checker(RoutingResult &serv, HttpRequest &req, HttpResponse &res);
+		int									_checkExtention(const std::string &path, const std::vector<std::string> &ext);
 		int									_checkInterpreter(const std::string &ext, const std::string &interpreter);
-		int									_checkInterpreterScrpt(RoutingResult *serv);
-		int									_executeScript(RoutingResult *serv, HttpRequest *req, HttpResponse &res);
+		int									_checkInterpreterScrpt(HttpRequest &req);
+		int									_checkPathExtension(const std::string &ext, const std::string &interpreter);
+		int									_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res);
 		int									_mergeEnv();
 		void								_printEnv();
-		Cgi(RoutingResult *serv, HttpRequest *req);
+		Cgi(RoutingResult &serv, HttpRequest &req, HttpResponse &res);
 		~Cgi();
 };
-
-int posthandler(HttpRequest *req, RoutingResult *ser);
-int handle_multiple_form_data(HttpRequest &req);
-int parsechunked(HttpRequest &req, RoutingResult &ser);
 
 
 #endif
