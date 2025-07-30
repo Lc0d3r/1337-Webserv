@@ -5,6 +5,8 @@
 #include "abel-baz/Parser.hpp"
 #include "abel-baz/Tokenizer.hpp"
 #include "ysahraou/HttpResponse.hpp"
+#include <signal.h>
+#include "utils.hpp"
 
 void loop(std::map <int, ConnectionInfo> &connections, Config &config)
 {
@@ -102,6 +104,16 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                     } else {
                         connections[pollfds[i].fd].keep_alive = false;
                     }
+                    std::string str = convertPath(request.path);
+                    if (str.empty()) {
+                        std::cerr << "Invalid path in request: " << request.path << std::endl;
+                        close(client_fd);
+                        connections.erase(client_fd);
+                        pollfds.erase(pollfds.begin() + i);
+                        --i;
+                        continue;
+                    }
+                    request.path = str;
                     
                     // response
                     std::cout << "====>request parsed successfully" << std::endl;
@@ -127,6 +139,7 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
 }
 
 int main(int argc, char **argv) {
+    signal(SIGPIPE, SIG_IGN);
     // config part
     if (argc != 2) {
         std::cerr << "Usage: ./webserv <config_file>" << std::endl;

@@ -7,15 +7,14 @@
 #include "../abel-baz/Router.hpp"
 
 #define CHUNK_SIZE 1024 * 1024 // 1 MB
-#define MAX_TO_SEND 1024 * 64
+#define MAX_TO_SEND 1024 * 64 // 64 KB
+
 struct HttpResponse {
     std::string httpVersion;
     int statusCode;
     std::string statusMessage;
     std::map<std::string, std::string> headers;
-    std::string text_body;            // For text/html, JSON, etc.
-    std::vector<char> binary_body;   // For PDFs, images, etc.
-    bool is_binary;                  // Flag to know which one to send
+    std::vector<char> body;   // For PDFs, images, etc.
 
     HttpResponse() : httpVersion("HTTP/1.1"), statusCode(200), statusMessage("OK") {}
 
