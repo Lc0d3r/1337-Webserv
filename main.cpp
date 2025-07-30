@@ -6,7 +6,7 @@
 #include "abel-baz/Tokenizer.hpp"
 #include "ysahraou/HttpResponse.hpp"
 #include <signal.h>
-#include "utils.hpp"
+#include "ysahraou/utils.hpp"
 
 void loop(std::map <int, ConnectionInfo> &connections, Config &config)
 {
@@ -95,6 +95,18 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                     // read the body
                     std::string str_body;
                     readBody(request, str_body, client_fd);
+                    if (!request.body.empty() && request.body.size() >= config.getMaxBodySize("", connections[pollfds[i].fd].portToConnect)) {
+                        HttpResponse response;
+                        response.statusCode = 413; // Payload Too Large
+                        response.httpVersion = "HTTP/1.1";
+                        response.statusMessage = "Payload Too Large";
+                        response.addHeader("Content-Type", "text/html");
+                        response.setTextBody("<html><body><h1>413 Payload Too Large</h1></body></html>");
+                        std::cout << "Request body size exceeds limit, sending 413 response." << std::endl;
+                        write(client_fd, response.toString().c_str(), response.toString().size());
+                        write (client_fd, response.body.data(), response.body.size());
+                        continue; // no body to read or body size exceeds limit
+                    }
                     std::cout << "====>requestData read successfully" << std::endl;
                     // handle keep-alive connections
                     if (request.is_keep_alive) {

@@ -274,14 +274,19 @@ void response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
     (void)config;
     std::cout << "==================================[preparing response]============================\n";
     HttpResponse response(200, "OK");
+    errorType error = NO_ERROR;
+    int port;
+    std::string hostname;
+    splithostport(request.headers.at("Host"), hostname, port);
+    RoutingResult routing_result = routingResult(config, hostname, port, request.path, request.method, error);
+    if (error == NO_ERROR) 
+    {
+        if (!routing_result.getExtension().empty())
+            std::cout << "extension: " << routing_result.getExtension() << std::endl; 
+    }
     if (request.method == "GET") {
         handleGETRequest(response, request, config, connections);
     } else if (request.method == "POST") {
-        errorType error = NO_ERROR;
-        int port;
-        std::string hostname;
-        splithostport(request.headers.at("Host"), hostname, port);
-        RoutingResult routing_result = routingResult(config, hostname, port, request.path, request.method, error);
         if (error == NO_ERROR) {
             posthandler(&request, &routing_result, response);
         }
