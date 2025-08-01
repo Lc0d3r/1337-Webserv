@@ -17,8 +17,9 @@ struct LocationConfig
     std::string upload_dir;           // where to store uploaded files
     std::string redirection;          // optional: redirect to another URL
     std::vector<std::string> cgi_extension;        // e.g. ".php", ".py" <-- khask trdo vector 7int i9dr idirhom bjooj (multiple cgi)
+    bool empty;
 
-    LocationConfig() : autoindex(false) {}
+    LocationConfig() : autoindex(false), empty(true) {}
 };
 
 // Represents one server block

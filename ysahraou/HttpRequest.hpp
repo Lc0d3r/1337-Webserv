@@ -1,6 +1,17 @@
 #pragma once
-
-#include "sockets.hpp"
+#include <iostream>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
+#include <arpa/inet.h>
+#include <map>
+#include <sstream>  // for std::istringstream
+#include <string>
+#include <cstdio>
+#include <vector>
+#include <netdb.h>
 #include "../ziel-hac/cgi_utils.hpp"
 
 
@@ -15,6 +26,15 @@ struct HttpRequest {
     std::map<std::string, std::string> headers;
     std::string body; // the body
 
+
+    //////////
+    bool in_progress;
+    bool done;
+    int byte_readed;
+    int content_length;
+
+    HttpRequest();
+    //////////
     std::string getExtension() const;
     std::string getQueryString() const;
     std::string getContentType() const;

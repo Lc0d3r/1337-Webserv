@@ -212,7 +212,7 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
         response.statusMessage = "OK";
         std::string body;
         std::cout << "result.file_path = " << result.file_path << std::endl;
-        if (generateAutoIndex(result.file_path, result.file_path, body)) {
+        if (generateAutoIndex(result.file_path, request.path_without_query , body)) {
             response.setTextBody(body);
             response.addHeader("Content-Type", "text/html");
             response.addHeader("Content-Length", intToString(body.length()));

@@ -30,7 +30,6 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
         }
         // for each socket that is ready, check if it is a listener or a connected socket
         for (size_t i = 0; i < pollfds.size(); ++i) {
-            HttpRequest request;
             int client_fd;
 
             // Check for errors or disconnections
@@ -73,6 +72,10 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                     pfd.fd = client_fd; // connected socket
                     pfd.events = POLLIN; // events to monitor
                     pollfds.push_back(pfd);
+
+                    // requst object to hold the request data
+                    connections[client_fd].request = HttpRequest();
+                    std::cout << "New connection added to connections map." << std::endl;
                 }
                 else if (connections[pollfds[i].fd].type == CONNECTED) {
                     client_fd = pollfds[i].fd;
@@ -80,59 +83,67 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
 
                     // read data from the client
                     // read the headers
-                    std::string request_data;
-                    readHeaders(request_data, client_fd);
-                    if (parse_req(request_data, client_fd, request))
-                    {
-                        // close connection if parsing failed
-                        std::cout << "Failed to parse request, closing connection." << std::endl;
-                        close(client_fd);
-                        connections.erase(client_fd);
-                        pollfds.erase(pollfds.begin() + i);
-                        --i;
-                        continue;
+                    if (!connections[pollfds[i].fd].request.in_progress && !connections[pollfds[i].fd].request.done) {
+                        std::string request_data;
+                        readHeaders(request_data, client_fd);
+                        if (parse_req(request_data, client_fd, connections[pollfds[i].fd].request) )
+                        {
+                            // close connection if parsing failed
+                            std::cout << "Failed to parse request, closing connection." << std::endl;
+                            close(client_fd);
+                            connections.erase(client_fd);
+                            pollfds.erase(pollfds.begin() + i);
+                            --i;
+                            continue;
+                        }
                     }
                     // read the body
                     std::string str_body;
-                    readBody(request, str_body, client_fd);
-                    if (!request.body.empty() && request.body.size() >= config.getMaxBodySize("", connections[pollfds[i].fd].portToConnect)) {
+                    readBody(connections[pollfds[i].fd].request, str_body, client_fd);
+                    if (!connections[pollfds[i].fd].request.body.empty() && connections[pollfds[i].fd].request.body.size() >= config.getMaxBodySize("", connections[pollfds[i].fd].portToConnect)) {
                         HttpResponse response;
                         response.statusCode = 413; // Payload Too Large
                         response.httpVersion = "HTTP/1.1";
                         response.statusMessage = "Payload Too Large";
                         response.addHeader("Content-Type", "text/html");
+                        response.addHeader("Connection", "close");
+                        response.addHeader("Content-Length", "57");
                         response.setTextBody("<html><body><h1>413 Payload Too Large</h1></body></html>");
                         std::cout << "Request body size exceeds limit, sending 413 response." << std::endl;
                         write(client_fd, response.toString().c_str(), response.toString().size());
                         write (client_fd, response.body.data(), response.body.size());
                         continue; // no body to read or body size exceeds limit
                     }
-                    std::cout << "====>requestData read successfully" << std::endl;
-                    // handle keep-alive connections
-                    if (request.is_keep_alive) {
+                    if (connections[pollfds[i].fd].request.is_keep_alive) {
                         std::cout << "Connection is keep-alive setting keep_alive to true" << std::endl;
                         connections[pollfds[i].fd].keep_alive = true;
                         connections[pollfds[i].fd].last_active = time(NULL);
                     } else {
                         connections[pollfds[i].fd].keep_alive = false;
                     }
+                    if (connections[pollfds[i].fd].request.in_progress) {
+                        std::cout << "Request is in progress, waiting for more data..." << std::endl;
+                        continue; // request is still in progress, wait for more data
+                    }
+                    std::cout << "=====================>>>>>requestData read successfully" << std::endl;
+                    // handle keep-alive connections
 
                     // decode the request path
-                    std::string str = decodePath(request.path);
+                    std::string str = decodePath(connections[pollfds[i].fd].request.path);
                     if (str.empty()) {
-                        std::cerr << "Invalid path in request: " << request.path << std::endl;
+                        std::cerr << "Invalid path in request: " << connections[pollfds[i].fd].request.path << std::endl;
                         close(client_fd);
                         connections.erase(client_fd);
                         pollfds.erase(pollfds.begin() + i);
                         --i;
                         continue;
                     }
-                    request.path = str;
-                    removeQueryString(request);
+                    connections[pollfds[i].fd].request.path = str;
+                    removeQueryString(connections[pollfds[i].fd].request);
                     
                     // response
                     std::cout << "====>request parsed successfully" << std::endl;
-                    response(pollfds[i].fd, request, config, connections[pollfds[i].fd]);
+                    response(pollfds[i].fd, connections[pollfds[i].fd].request, config, connections[pollfds[i].fd]);
                 }
             }
             else if (connections[pollfds[i].fd].type == CONNECTED && connections[pollfds[i].fd].is_old) {

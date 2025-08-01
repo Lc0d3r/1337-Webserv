@@ -1,6 +1,8 @@
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
 
+HttpRequest::HttpRequest() : in_progress(false), done(false), byte_readed(0), content_length(0) {}
+
 std::string HttpRequest::getCookie() const
 {
 if (headers.count("Cookie")) {
@@ -192,13 +194,14 @@ void readHeaders(std::string &request_data, int new_socket) {
 
 void readBody(HttpRequest &request, std::string &str_body, int new_socket) {
     int content_length = 0;
-    std::cout << "reading the body" << std::endl;
+    std::cout << "reading the body..." << std::endl;
     if (request.headers.count("Content-Length"))
     {
         content_length = std::atoi(request.headers["Content-Length"].c_str());
         std::cout << "true content lenght is there -> " << request.headers.at("Content-Length") << "\n";
+        request.content_length = content_length;
         char buffer[2] = {0};
-        while (str_body.size() < static_cast<size_t>(content_length))
+        while (str_body.size() < CHUNK_SIZE)
         {
             int bytes = read(new_socket, buffer, 1);
             if (bytes <= 0) {
@@ -207,24 +210,33 @@ void readBody(HttpRequest &request, std::string &str_body, int new_socket) {
             }
             str_body.append(buffer, bytes);
         }
-        request.body = str_body;
-    }
-    else 
-    {
-        std::cout << "false content lenght is not there\n";
-        char buffer[2] = {0};
-        while (str_body.find("\r\n\r\n") == std::string::npos && request.method == "POST")
-        {
-            int bytes = read(new_socket, buffer, 1);
-            if (bytes <= 0) {
-                // client disconnected or error
-                break;
-            }
-            str_body.append(buffer, bytes);
+        request.byte_readed += str_body.size();
+        request.body += str_body;
+        if (request.byte_readed < content_length) {
+            request.in_progress = true;
+            std::cout << "request is in progress, bytes readed: " << request.byte_readed << ", content length: " << content_length << std::endl;
+        } else {
+            request.done = true;
+            request.in_progress = false;
+            std::cout << "request done, bytes readed: " << request.byte_readed << ", content length: " << content_length << std::endl;
         }
-        request.body = str_body;
     }
-    std::cout << "done reading the body" << std::endl;
+    // else 
+    // {
+    //     std::cout << "false content lenght is not there\n";
+    //     char buffer[2] = {0};
+    //     while (str_body.find("\r\n\r\n") == std::string::npos && request.method == "POST")
+    //     {
+    //         int bytes = read(new_socket, buffer, 1);
+    //         if (bytes <= 0) {
+    //             // client disconnected or error
+    //             break;
+    //         }
+    //         str_body.append(buffer, bytes);
+    //     }
+    //     request.body = str_body;
+    // }
+    // std::cout << "done reading the body" << std::endl;
 }
 
 void removeQueryString(HttpRequest &request) {

@@ -19,6 +19,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include "../abel-baz/Config.hpp"
+#include "HttpRequest.hpp"
 
 
 enum Type {
@@ -39,6 +40,12 @@ struct ConnectionInfo {
     std::streamsize pos;
     bool is_old;
     std::string file_path;
+
+
+    // request info
+    HttpRequest request;
+
+
     ConnectionInfo() ;
     ConnectionInfo(Type t, bool ka);
 };
