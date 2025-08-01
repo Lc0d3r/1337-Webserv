@@ -3,15 +3,25 @@
 
 
 int Config::getKeepAliveTimeout(std::string host, int port) const {
-        ServerConfig server = matchServer(*this, host, port);
-        if (server.keep_alive_timeout > 0) {    
-            return server.keep_alive_timeout;
-        }
-        return 10; // default keep-alive timeout
+    errorType error = NO_ERROR;
+    ServerConfig server = matchServer(*this, host, port, error);
+    if (error != NO_ERROR) {
+        std::cerr << "Error occurred: " << error << std::endl;
+        return 0; // Meaningful value indicating error
+    }
+    if (server.keep_alive_timeout > 0) {
+        return server.keep_alive_timeout;
+    }
+    return 10; // default keep-alive timeout
 }
 
 size_t Config::getMaxBodySize(std::string host, int port) const {
-    ServerConfig server = matchServer(*this, host, port);
+    errorType error = NO_ERROR;
+    ServerConfig server = matchServer(*this, host, port, error);
+    if (error != NO_ERROR) {
+        std::cerr << "Error occurred: " << error << std::endl;
+        return 0; // Meaningful value indicating error
+    }
     if (server.max_body_size > 0) {
         return server.max_body_size;
     }

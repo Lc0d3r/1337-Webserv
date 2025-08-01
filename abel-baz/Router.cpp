@@ -34,9 +34,12 @@ std::vector<std::string> RoutingResult::getExtension() const // had lpart rah ed
     return std::vector<std::string>();
 }
 
+
+
+
 // DO: Match a server block based on host and port
 // RETURN: the first server block that matches the port, or the first server block matches the host if no port match is found
-const ServerConfig& matchServer(const Config& config, const std::string& host, int port) {
+ServerConfig matchServer(const Config& config, const std::string& host, int port, errorType& error) {
     const ServerConfig* fallback = NULL;
 
     for (size_t i = 0; i < config.servers.size(); ++i)
@@ -65,13 +68,15 @@ const ServerConfig& matchServer(const Config& config, const std::string& host, i
     if (fallback)
         return *fallback;
     else
-        throw std::runtime_error("No server block found for that port");
+    {
+        error = SERVER_NOT_FOUND;
+        return ServerConfig(); // Return an empty ServerConfig on error
+    }
 }
-
 
 // DO: This function matches the longest location path for a given URI in a server block.
 // RETURN: the location block that matches the URI
-const LocationConfig& matchLocation(const ServerConfig& server, const std::string& uri) {
+LocationConfig matchLocation(const ServerConfig& server, const std::string& uri, errorType& error) {
     
     const LocationConfig *match = NULL;
     size_t longest = 0;
@@ -106,7 +111,10 @@ const LocationConfig& matchLocation(const ServerConfig& server, const std::strin
     }
 
     if (!match)
-        throw std::runtime_error("No matching location for URI: " + uri);
+    {
+        error = LOCATION_NOT_FOUND;
+        return LocationConfig(); // Return an empty LocationConfig on error
+    }
 
     return *match;
 }
@@ -164,9 +172,14 @@ bool fileExists(const std::string& path) {
 RoutingResult routingResult(const Config& config, const std::string& host,
                         int port, const std::string& uri, const std::string& method, errorType& error)
 {
-    const ServerConfig& server = matchServer(config, host, port);
-    const LocationConfig& location = matchLocation(server, uri);
-    
+    const ServerConfig& server = matchServer(config, host, port, error);
+    const LocationConfig& location = matchLocation(server, uri, error);
+    if (error != NO_ERROR)
+    {
+        std::cerr << "Error occurred: " << error << std::endl;
+        return RoutingResult(); // Return an empty result on error
+    }
+
     RoutingResult result;
     result.server = &server;
     result.location = &location;
