@@ -1,4 +1,11 @@
 #include "cgi.hpp"
+#include "../ysahraou/HttpResponse.hpp"
+
+int Cgi::getvalidChecker() const
+{
+	return valid_checker;
+}
+
 
 Cgi::Cgi(RoutingResult &serv, HttpRequest &req, HttpResponse &res): valid_checker(1)
 {
@@ -18,15 +25,18 @@ Cgi::Cgi(RoutingResult &serv, HttpRequest &req, HttpResponse &res): valid_checke
 
 int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res)
 {
+	(void)serv; // Suppress unused parameter warning
 	std::string body;
 	pipe(output_fd);
 	pipe(input_fd);
 	pid_t pid = fork();
 	if (pid < 0)
 	{
-		res.setTextBody("Internal Server Error");
+		res.setTextBody("<h1>500 Internal Server Error</h1>");
 		res.statusCode = 500;
 		res.statusMessage = "Internal Server Error";
+		res.addHeader("Content-Length", intToString(res.body.size()));
+		res.addHeader("Content-Type", "text/html");
 		return (0);
 	}
 	if(pid == 0)
@@ -38,24 +48,30 @@ int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res
 				res.setTextBody("<h1>404 Not Found</h1>");
 				res.statusCode = 404;
 				res.statusMessage = "Not Found";
+				res.addHeader("Content-Length", intToString(res.body.size()));
+				res.addHeader("Content-Type", "text/html");
 				return (0);
 			}
 			else
 			{
 				if (dup2(input_fd[0], STDIN_FILENO) < 0)
 				{
-					res.setTextBody("Internal Server Error");
+					res.setTextBody("<h1>500 Internal Server Error</h1>");
 					res.statusCode = 500;
 					res.statusMessage = "Internal Server Error";
+					res.addHeader("Content-Length", intToString(res.body.size()));
+					res.addHeader("Content-Type", "text/html");
 					return (0);
 				}
 			}
 		}
 		if (dup2(output_fd[1], STDOUT_FILENO) < 0)
 		{
-			res.setTextBody("Internal Server Error");
+			res.setTextBody("<h1>500 Internal Server Error</h1>");
 			res.statusCode = 500;
 			res.statusMessage = "Internal Server Error";
+			res.addHeader("Content-Length", intToString(res.body.size()));
+			res.addHeader("Content-Type", "text/html");
 			return (0);
 		}
 		close(input_fd[1]);
@@ -63,16 +79,20 @@ int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res
 		close(output_fd[1]);
 		close(input_fd[0]);
 		char *argv[3];
-		argv[0] = const_cast<char *>(getScriptFilename(req).c_str());
-		argv[1] = const_cast<char *>(req.path.c_str());
+		std::string scriptFilename = getScriptFilename(req);
+		argv[0] = const_cast<char *>(scriptFilename.c_str());
+		argv[1] = const_cast<char *>(serv.file_path.c_str());
 		argv[2] = NULL;
 		if (execve(argv[0], argv, _envc) < 0)
 		{
-			res.setTextBody("Internal Server Error");
+			res.setTextBody("<h1>500 Internal Server Error</h1>");
 			res.statusCode = 500;
 			res.statusMessage = "Internal Server Error";
+			res.addHeader("Content-Length", intToString(res.body.size()));
+			res.addHeader("Content-Type", "text/html");
 			return (0);
 		}
+
 	}
 	else
 	{
@@ -85,12 +105,14 @@ int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res
 		while ((bytesRead = read(output_fd[0], buffer, sizeof(buffer) - 1)) > 0)
 		{
 			buffer[bytesRead] = '\0'; 
+
 			write(STDOUT_FILENO, buffer, bytesRead);
 			body += std::string(buffer, bytesRead);
 		}
 		res.setTextBody(body);
-		res.headers["Content-Length"] = std::to_string(body.length());
+		res.headers["Content-Length"] = intToString(body.length());
 	}
+	return 1; // Add return statement
 }
 
 int	Cgi::_mergeEnv()
@@ -148,14 +170,13 @@ std::string getExtraPath(const std::string &path, HttpRequest &req)
 
 std::string Cgi::getScriptFilename(HttpRequest &req) const
 {
-	if (req.getExtension() == ".php")
-		return ("/usr/bin/php-cgi");
+	if (req.getExtension() == ".js")
+		return ("/usr/bin/nodejs");
 	return ("/usr/bin/python3");
 }
 
 void Cgi::setEnv(RoutingResult &serv, HttpRequest &req)
 {
-	std::cout << "Setting environment variables for CGI..." << std::endl;
 	if (_check_extra_path(req))
 		_tmpEnv["PATH_INFO"] = getExtraPath(req.path, req);
 	_tmpEnv["AUTH_TYPE"] = "Basic";
@@ -179,12 +200,12 @@ void Cgi::setEnv(RoutingResult &serv, HttpRequest &req)
 //RETURN: 0 if all above is true, 1 if any of the above is false
 int Cgi::_checker(RoutingResult &serv, HttpRequest &req, HttpResponse &res)
 {
-	if (!_checkExtention(req.path, serv.getExtension()) && !_checkPathExtension(req.getExtension(), getScriptFilename(req)))
+	if (!_checkExtention(req.path_without_query, serv.getExtension()) && !_checkPathExtension(req.getExtension(), getScriptFilename(req)))
 	{
 		res.statusCode = 403;
 		res.statusMessage = "Forbidden";
 		res.setTextBody("<h1>403 Forbidden</h1>");
-		res.addHeader("Content-Length", std::to_string(res.text_body.length()));
+		res.addHeader("Content-Length", intToString(res.body.size()));
 		res.addHeader("Content-Type", "text/html");
 		return 1; // Extension not allowed
 	}
@@ -193,7 +214,7 @@ int Cgi::_checker(RoutingResult &serv, HttpRequest &req, HttpResponse &res)
 		res.statusCode = 502;
 		res.statusMessage = "Bad Gateway";
 		res.setTextBody("<h1>502 Bad Gateway</h1>");
-		res.addHeader("Content-Length", std::to_string(res.text_body.length()));
+		res.addHeader("Content-Length", intToString(res.body.size()));
 		res.addHeader("Content-Type", "text/html");
 		return 1; // Interpreter not found or not executable
 	}
@@ -203,8 +224,9 @@ int Cgi::_checker(RoutingResult &serv, HttpRequest &req, HttpResponse &res)
 int		Cgi::_checkExtention(const std::string &path, const std::vector<std::string> &ext)
 {
 
-	for (int i = 0; i < ext.size(); ++i)
+	for (size_t i = 0; i < ext.size(); ++i)
 	{
+		std::cout << "path: " << path << " ext: " << ext[i] << std::endl;
 		if (path.find(ext[i]) != std::string::npos)
 		{
 			int pos = path.find(ext[i]);
@@ -221,7 +243,7 @@ int Cgi::_checkPathExtension(const std::string &ext, const std::string &interpre
 {
 	std::vector<std::string> extVector = split(interpreter, "/");
 	for (size_t i = 0; i < extVector.size(); ++i)
-		if (i == extVector.size() - 1 && ((extVector[i] == "cgi-php" && ext == ".php") || (extVector[i] == "python3" && ext == ".py")))
+		if (i == extVector.size() - 1 && ((extVector[i] == "nodejs" && ext == ".py") || (extVector[i] == "python3" && ext == ".py")))
 			return 1;
 	return 0;
 }

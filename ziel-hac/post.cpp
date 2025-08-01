@@ -1,23 +1,17 @@
-#include "cgi.hpp"
-#include <sstream>
-#include <fcntl.h>
-#include <unistd.h>
+#include "post.hpp"
+#include "../ysahraou/HttpResponse.hpp"
+#include "cgi_utils.hpp"
 
 int parsechunked(HttpRequest &req, RoutingResult &ser) //<-- i need to parse chuncked body, for both cgi and non cgi, put to bodies one in the request to usit in cgi and the in the upload file in the conf.file 
 {
 	std::vector<std::string> chunks = split(req.body, "\r\n");
-	for(size_t i = 0; i < chunks.size(); ++i)
-	{
-		std::cout << i << "Chunk: " << chunks[i] << std::endl;
-	}
 	size_t chunk_size = 0;
 	size_t i = 0;
 	std::string upload_file = ser.getUploadFile() + "/uploads.txt";
 	int fd = open(upload_file.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
 	if(fd < 0)
 	{
-		std::cerr << "Failed to open upload file." << std::endl;
-		return 0; // Handle error appropriately
+		return 0;
 	}
 	req.body.clear();
 	std::istringstream(chunks[i]) >> std::hex >> chunk_size;
@@ -42,6 +36,7 @@ int handle_multiple_form_data(HttpRequest &req, RoutingResult &ser)
 	std::cout << "Boundary: " << boundary << std::endl;
 	std::cout << req.body << std::endl;
 	std::vector<std::string> parts = split(req.body, "--" + boundary);
+	parts.erase(parts.end() - 1);
 	// for (std::vector<std::string>::iterator it = parts.begin(); it != parts.end(); ++it)
 	// {
 	// 	std::cout << "Part: " << *it << "end" << std::endl;
@@ -57,13 +52,8 @@ int handle_multiple_form_data(HttpRequest &req, RoutingResult &ser)
 			int fd = open(upload_dir.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
 			if (fd < 0)
 			{
-				upload_dir = "/tmp/" + filename;
-				fd = open(upload_dir.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
-				if (fd < 0)
-				{
-					std::cerr << "Failed to open file: " << filename << std::endl;
-					return 0; // Handle error appropriately
-				}
+				std::cout << "500 error opening file" << std::endl;
+				return 0; // Handle error appropriately
 			}
 			if (write(fd, headers_and_body[1].c_str(), headers_and_body[1].length()) < 0)
 			{
@@ -80,8 +70,7 @@ int handle_multiple_form_data(HttpRequest &req, RoutingResult &ser)
 			int fd = open(filename.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
 			if (fd < 0)
 			{
-				std::cerr << "Failed to open file: " << filename << std::endl;
-				return 0; // Handle error appropriately
+				return 0;
 			}
 			if (write(fd, headers_and_body[1].c_str(), headers_and_body[1].length()) < 0)
 			{
@@ -100,12 +89,13 @@ int posthandler(HttpRequest *req, RoutingResult *ser, HttpResponse &res)
     {
 		if (!req->getTransferEncoding().empty())
 		{
-			std::cout << "--------------------------------Transfer encoding is chunked." << std::endl;
 			if(!parsechunked(*req, *ser))
             {
-				res.setTextBody("<h1>400 Bad Request</h1>");
-				res.statusCode = 400;
-				res.statusMessage = "Bad Request";
+				res.setTextBody("<h1>500 Internal Server Error</h1>");
+				res.statusCode = 500;
+				res.statusMessage = "Internal Server Error";
+				res.addHeader("Content-Length", intToString(res.body.size()));
+				res.addHeader("Content-Type", "text/html");
 				return 0;
 			}
 		}
@@ -113,18 +103,23 @@ int posthandler(HttpRequest *req, RoutingResult *ser, HttpResponse &res)
 		{
             if (!handle_multiple_form_data(*req, *ser))
 			{
-				res.setTextBody("<h1>400 Bad Request</h1>");
-				res.statusCode = 400;
-				res.statusMessage = "Bad Request";
+				res.setTextBody("<h1>500 Internal Server Error</h1>");
+				res.statusCode = 500;
+				res.statusMessage = "Internal Server Error";
+				res.addHeader("Content-Length", intToString(res.body.size()));
+				res.addHeader("Content-Type", "text/html");
 				return 0;
 			}
 
 		}
         else
 		{
-			res.setTextBody("<h1>400 Bad Request</h1>");
-			res.statusCode = 400;
-			res.statusMessage = "Bad Request";
+			
+			res.setTextBody("<h1>411 Length Required</h1>");
+			res.statusCode = 411;
+			res.statusMessage = "Length Required";
+			res.addHeader("Content-Length", intToString(res.body.size()));
+			res.addHeader("Content-Type", "text/html");
 			return 0;
 		}
     }

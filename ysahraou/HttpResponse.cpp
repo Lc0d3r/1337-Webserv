@@ -1,8 +1,10 @@
 #include "HttpResponse.hpp"
 #include "sockets.hpp"
+#include "../ziel-hac/cgi.hpp"
+#include "../ziel-hac/post.hpp"
 #include <dirent.h>
 #include <fstream>
-#include "../ziel-hac/post.hpp"
+
 
 std::string HttpResponse::toString() const {
         std::string responseString = httpVersion + " " + intToString(statusCode) + " " + statusMessage + "\r\n";
@@ -278,20 +280,28 @@ void response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
     int port;
     std::string hostname;
     splithostport(request.headers.at("Host"), hostname, port);
-    RoutingResult routing_result = routingResult(config, hostname, port, request.path, request.method, error);
-    // if (error == NO_ERROR) 
-    // {
-    //     // if (!routing_result.getExtension().empty())
-    //         // std::cout << "extension: " << routing_result.getExtension() << std::endl; 
-    // }
-    if (request.method == "GET") {
-        handleGETRequest(response, request, config, connections);
-    } else if (request.method == "POST") {
-        if (error == NO_ERROR) {
-            posthandler(&request, &routing_result, response);
+    RoutingResult routing_result = routingResult(config, hostname, port, request.path_without_query, request.method, error);
+    // check error flag 
+    std::cout << "error: " << error << std::endl;
+    if (error == NO_ERROR)
+    {
+        std::cout << "====================================================CGI extension found, handling CGI script." << std::endl;
+        if (!routing_result.getExtension().empty())
+        {
+            Cgi handlecgi(routing_result, request, response);
+            if (handlecgi.getvalidChecker() == 1)
+            if (!handlecgi._executeScript(routing_result, request, response))
+            std::cout << "Failed to execute CGI script." << std::endl;
+        }
+        else if (request.method == "GET") {
+            handleGETRequest(response, request, config, connections);
+        } else if (request.method == "POST") {
+            if (error == NO_ERROR) {
+                posthandler(&request, &routing_result, response);
+            }
         }
     }
-    std::cout << "==================================[ response prepared ]============================\n";
+        std::cout << "==================================[ response prepared ]============================\n";
 
     std::cout << "==================================[sending response...]============================\n";
     // sending the response
