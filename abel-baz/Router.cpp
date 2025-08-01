@@ -39,7 +39,8 @@ std::vector<std::string> RoutingResult::getExtension() const // had lpart rah ed
 
 // DO: Match a server block based on host and port
 // RETURN: the first server block that matches the port, or the first server block matches the host if no port match is found
-ServerConfig matchServer(const Config& config, const std::string& host, int port, errorType& error) {
+const ServerConfig& matchServer(const Config& config, const std::string& host, int port, errorType& error) {
+    static ServerConfig emptyServer; // Static to avoid returning a dangling reference
     const ServerConfig* fallback = NULL;
 
     for (size_t i = 0; i < config.servers.size(); ++i)
@@ -70,14 +71,15 @@ ServerConfig matchServer(const Config& config, const std::string& host, int port
     else
     {
         error = SERVER_NOT_FOUND;
-        return ServerConfig(); // Return an empty ServerConfig on error
+        return emptyServer; // Return an empty ServerConfig on error
     }
 }
 
 // DO: This function matches the longest location path for a given URI in a server block.
 // RETURN: the location block that matches the URI
-LocationConfig matchLocation(const ServerConfig& server, const std::string& uri, errorType& error) {
+const LocationConfig& matchLocation(const ServerConfig& server, const std::string& uri, errorType& error) {
     
+    static LocationConfig emptyLocation; // Static to avoid returning a dangling reference
     const LocationConfig *match = NULL;
     size_t longest = 0;
 
@@ -113,7 +115,7 @@ LocationConfig matchLocation(const ServerConfig& server, const std::string& uri,
     if (!match)
     {
         error = LOCATION_NOT_FOUND;
-        return LocationConfig(); // Return an empty LocationConfig on error
+        return emptyLocation; // Return an empty LocationConfig on error
     }
 
     return *match;
@@ -177,7 +179,7 @@ RoutingResult routingResult(const Config& config, const std::string& host,
     if (error != NO_ERROR)
     {
         std::cerr << "Error occurred: " << error << std::endl;
-        return RoutingResult(); // Return an empty result on error
+        return RoutingResult(); // Return an empty RoutingResult on error
     }
 
     RoutingResult result;
