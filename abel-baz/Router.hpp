@@ -14,11 +14,11 @@ struct RoutingResult
     bool use_autoindex; // true if autoindex is enabled for the location
 
     // getters
-    std::string getExtension() const;
-    std::string getServerName() const;
-    std::string getDocumentRoot() const;
-    std::string getScriptFilename() const;
-    std::string getUploadFile() const;
+    std::vector<std::string>    getExtension() const;
+    std::string                 getServerName() const;
+    std::string                 getDocumentRoot() const;
+    std::string                 getScriptFilename() const;
+    std::string                    getUploadFile() const;
 };
 
 

@@ -25,17 +25,13 @@ std::string RoutingResult::getServerName() const
         return server->server_name[0];
     return "localhost";
 }
-std::string RoutingResult::getExtension() const // had lpart rah edited
+std::vector<std::string> RoutingResult::getExtension() const // had lpart rah edited
 {
     // Return all extensions joined by comma, or empty string if none
     if (!location->cgi_extension.empty()) {
-        std::string result = location->cgi_extension[0];
-        for (size_t i = 1; i < location->cgi_extension.size(); ++i) {
-            result += "," + location->cgi_extension[i];
-        }
-        return result;
+        return location->cgi_extension;
     }
-    return "";
+    return std::vector<std::string>();
 }
 
 // DO: Match a server block based on host and port

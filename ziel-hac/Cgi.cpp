@@ -1,45 +1,41 @@
 #include "cgi.hpp"
 
-Cgi::Cgi(RoutingResult *serv, HttpRequest *req)
+Cgi::Cgi(RoutingResult &serv, HttpRequest &req, HttpResponse &res): valid_checker(1)
 {
 	
-	if (!_checker(serv, req))
+	if (!_checker(serv, req, res))
 	{
 		setEnv(serv, req);
 		_mergeEnv();
-		if (!_executeScript(serv, req, res))
-		{
-			std::cerr << "Failed to execute CGI script." << std::endl;
-			return; // Handle error appropriately
-		}
 	}
 	else
 	{
-		std::cerr << "CGI extension is not valid." << std::endl;// <-- I need to trow an exception here
+		valid_checker = 0;
 		return;
 	}
 
 }
 
-int	Cgi::_executeScript(RoutingResult *serv, HttpRequest *req, HttpResponse &res)
+int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res)
 {
+	std::string body;
 	pipe(output_fd);
 	pipe(input_fd);
 	pid_t pid = fork();
 	if (pid < 0)
 	{
-		res.setBody("Internal Server Error");
+		res.setTextBody("Internal Server Error");
 		res.statusCode = 500;
 		res.statusMessage = "Internal Server Error";
 		return (0);
 	}
 	if(pid == 0)
 	{
-		if (req->method == "POST")
+		if (req.method == "POST")
 		{
-			if (req->body.empty())
+			if (req.body.empty())
 			{
-				res.setBody("<h1>404 Not Found</h1>");
+				res.setTextBody("<h1>404 Not Found</h1>");
 				res.statusCode = 404;
 				res.statusMessage = "Not Found";
 				return (0);
@@ -48,7 +44,7 @@ int	Cgi::_executeScript(RoutingResult *serv, HttpRequest *req, HttpResponse &res
 			{
 				if (dup2(input_fd[0], STDIN_FILENO) < 0)
 				{
-					res.setBody("Internal Server Error");
+					res.setTextBody("Internal Server Error");
 					res.statusCode = 500;
 					res.statusMessage = "Internal Server Error";
 					return (0);
@@ -57,24 +53,22 @@ int	Cgi::_executeScript(RoutingResult *serv, HttpRequest *req, HttpResponse &res
 		}
 		if (dup2(output_fd[1], STDOUT_FILENO) < 0)
 		{
-			res.setBody("Internal Server Error");
+			res.setTextBody("Internal Server Error");
 			res.statusCode = 500;
 			res.statusMessage = "Internal Server Error";
 			return (0);
 		}
-		if (req->method == "POST" && !req->body.empty())
-			write(input_fd[1], req->body.c_str(), req->body.length());
 		close(input_fd[1]);
 		close(output_fd[0]);
 		close(output_fd[1]);
 		close(input_fd[0]);
 		char *argv[3];
-		argv[0] = const_cast<char *>(getScriptFilename(serv).c_str());
-		argv[1] = const_cast<char *>(req->path.c_str());
+		argv[0] = const_cast<char *>(getScriptFilename(req).c_str());
+		argv[1] = const_cast<char *>(req.path.c_str());
 		argv[2] = NULL;
 		if (execve(argv[0], argv, _envc) < 0)
 		{
-			res.setBody("Internal Server Error");
+			res.setTextBody("Internal Server Error");
 			res.statusCode = 500;
 			res.statusMessage = "Internal Server Error";
 			return (0);
@@ -82,6 +76,8 @@ int	Cgi::_executeScript(RoutingResult *serv, HttpRequest *req, HttpResponse &res
 	}
 	else
 	{
+		if (req.method == "POST" && !req.body.empty())
+			write(input_fd[1], req.body.c_str(), req.body.length());
 		close(input_fd[0]);
 		close(output_fd[1]);
 		char buffer[1024];
@@ -90,9 +86,10 @@ int	Cgi::_executeScript(RoutingResult *serv, HttpRequest *req, HttpResponse &res
 		{
 			buffer[bytesRead] = '\0'; 
 			write(STDOUT_FILENO, buffer, bytesRead);
-			res.body += std::string(buffer, bytesRead);
+			body += std::string(buffer, bytesRead);
 		}
-		res.headers["Content-Length"] = std::to_string(res.body.length());
+		res.setTextBody(body);
+		res.headers["Content-Length"] = std::to_string(body.length());
 	}
 }
 
@@ -126,13 +123,13 @@ int	Cgi::_mergeEnv()
 
 
 
-bool Cgi::_check_extra_path(HttpRequest *req)
+bool Cgi::_check_extra_path(HttpRequest &req)
 {
-	std::string path = req->path;
-	if (path.find(req->getExtension()) != std::string::npos)
+	std::string path = req.path;
+	if (path.find(req.getExtension()) != std::string::npos)
 	{
-		int pos = path.find(req->getExtension());
-		if (path[pos + req->getExtension().length()] == '/')
+		int pos = path.find(req.getExtension());
+		if (path[pos + req.getExtension().length()] == '/')
 		{
 			return true;
 		}
@@ -142,73 +139,85 @@ bool Cgi::_check_extra_path(HttpRequest *req)
 	return false;
 }
 
-std::string getExtraPath(const std::string &path, RoutingResult *serv)
+std::string getExtraPath(const std::string &path, HttpRequest &req)
 {
-	int pos = path.find(serv->getExtension());
-	pos = pos + serv->getExtension().length();
+	int pos = path.find(req.getExtension());
+	pos = pos + req.getExtension().length();
 	return path.substr(pos);
 }
 
-std::string Cgi::getScriptFilename(RoutingResult *serv) const
+std::string Cgi::getScriptFilename(HttpRequest &req) const
 {
-	if (serv->getExtension() == ".php")
+	if (req.getExtension() == ".php")
 		return ("/usr/bin/php-cgi");
 	return ("/usr/bin/python3");
 }
 
-void Cgi::setEnv(RoutingResult *serv, HttpRequest *req)
+void Cgi::setEnv(RoutingResult &serv, HttpRequest &req)
 {
 	std::cout << "Setting environment variables for CGI..." << std::endl;
 	if (_check_extra_path(req))
-		_tmpEnv["PATH_INFO"] = getExtraPath(req->path, serv);
+		_tmpEnv["PATH_INFO"] = getExtraPath(req.path, req);
 	_tmpEnv["AUTH_TYPE"] = "Basic";
-	_tmpEnv["SERVER_NAME"] = serv->getServerName();
-	_tmpEnv["SERVER_PORT"] = req->getPort(); // <-- TO DO! 
+	_tmpEnv["SERVER_NAME"] = serv.getServerName();
+	// _tmpEnv["SERVER_PORT"] = req.getPort(); // <-- TO DO! 
 	_tmpEnv["SERVER_PROTOCOL"] = "HTTP/1.1";
 	_tmpEnv["GATEWAY_INTERFACE"] = "CGI/1.1";
 	_tmpEnv["SERVER_SOFTWARE"] = "WebServ/1.0";
-	_tmpEnv["SCRIPT_NAME"] = req->path;
-	_tmpEnv["REQUEST_METHOD"] = req->method;
-	_tmpEnv["QUERY_STRING"] = req->getQueryString();
-	_tmpEnv["DOCUMENT_ROOT"] = serv->getDocumentRoot();
-	_tmpEnv["SCRIPT_FILENAME"] = serv->file_path;
+	_tmpEnv["SCRIPT_NAME"] = req.path;
+	_tmpEnv["REQUEST_METHOD"] = req.method;
+	_tmpEnv["QUERY_STRING"] = req.getQueryString();
+	_tmpEnv["DOCUMENT_ROOT"] = serv.getDocumentRoot();
+	_tmpEnv["SCRIPT_FILENAME"] = serv.file_path;
 	_tmpEnv["REDIRECT_STATUS"] = "200";
-	_tmpEnv["CONTENT_TYPE"] = req->getContentType();
-	_tmpEnv["CONTENT_LENGTH"] = req->getContentLength();
-	_tmpEnv["HTTP_COOKIE"] = req->getCookie();
-	_tmpEnv["SCRIPT_FILENAME"] = getScriptFilename(serv);
+	_tmpEnv["CONTENT_TYPE"] = req.getContentType();
+	_tmpEnv["CONTENT_LENGTH"] = req.getContentLength();
+	_tmpEnv["HTTP_COOKIE"] = req.getCookie();
+	_tmpEnv["SCRIPT_FILENAME"] = getScriptFilename(req);
 }
-
-int Cgi::_checker(RoutingResult *serv, HttpRequest *req)
+//DO:1.checks if the extension is in the conf file, 2.checks if the extension in the path is valid 3.checks if the interpreter is valid
+//RETURN: 0 if all above is true, 1 if any of the above is false
+int Cgi::_checker(RoutingResult &serv, HttpRequest &req, HttpResponse &res)
 {
-	if (!_checkExtention(req->path, serv->getExtension()) && !_checkInterpreter(req->getExtension(), getScriptFilename(serv)))
+	if (!_checkExtention(req.path, serv.getExtension()) && !_checkPathExtension(req.getExtension(), getScriptFilename(req)))
 	{
-		std::cout << "Extension is not valid or interpreter does not match." << std::endl;
-		return 1; // Extension is not valid or interpreter does not match
+		res.statusCode = 403;
+		res.statusMessage = "Forbidden";
+		res.setTextBody("<h1>403 Forbidden</h1>");
+		res.addHeader("Content-Length", std::to_string(res.text_body.length()));
+		res.addHeader("Content-Type", "text/html");
+		return 1; // Extension not allowed
 	}
+	else if (!_checkInterpreterScrpt(req))
 	{
-		std::cout << "Script path is not valid or not executable." << std::endl;
-		return 1;
+		res.statusCode = 502;
+		res.statusMessage = "Bad Gateway";
+		res.setTextBody("<h1>502 Bad Gateway</h1>");
+		res.addHeader("Content-Length", std::to_string(res.text_body.length()));
+		res.addHeader("Content-Type", "text/html");
+		return 1; // Interpreter not found or not executable
 	}
 	return 0;
 }
 
-int Cgi::_checkInterpreterScrpt(RoutingResult *serv)
+int		Cgi::_checkExtention(const std::string &path, const std::vector<std::string> &ext)
 {
-	struct stat _stat;
-	stat(getScriptFilename(serv).c_str(), &_stat);
-	if (S_ISDIR(_stat.st_mode)) //<-- checks is the script path is a directory
-    	return 0;
-	else
-	{
-		if (access(getScriptFilename(serv).c_str(), F_OK | X_OK) != 0)
-			return 0; //<-- checks if the script path exists and is executable
-	}
-	return 1; //<-- if the script path is not a directory and exists and is executable, return 1
 
+	for (int i = 0; i < ext.size(); ++i)
+	{
+		if (path.find(ext[i]) != std::string::npos)
+		{
+			int pos = path.find(ext[i]);
+			if (path[pos + ext[i].length()] == '\0' || path[pos + ext[i].length()] == '/')
+				return 1;
+			else
+				return 0;
+		}
+	}
+	return 0;
 }
 
-int Cgi::_checkInterpreter(const std::string &ext, const std::string &interpreter) // checks if the interpreter matches the extension
+int Cgi::_checkPathExtension(const std::string &ext, const std::string &interpreter)
 {
 	std::vector<std::string> extVector = split(interpreter, "/");
 	for (size_t i = 0; i < extVector.size(); ++i)
@@ -217,18 +226,19 @@ int Cgi::_checkInterpreter(const std::string &ext, const std::string &interprete
 	return 0;
 }
 
-int		Cgi::_checkExtention(const std::string &path, const std::string &ext)// checks if the path ends with the given extension
+int Cgi::_checkInterpreterScrpt(HttpRequest &req)
 {
-
-	if (path.find(ext) != std::string::npos)
+	struct stat _stat;
+	stat(getScriptFilename(req).c_str(), &_stat);
+	if (S_ISDIR(_stat.st_mode)) //<-- checks is the script path is a directory
+    	return 0;
+	else
 	{
-		int pos = path.find(ext);
-		if (path[pos + ext.length()] == '\0' || path[pos + ext.length()] == '/')
-			return 1;
-		else
-			return 0;
+		if (access(getScriptFilename(req).c_str(), F_OK | X_OK) != 0) // 
+			return 0; //<-- checks if the script path exists and is executable
 	}
-	return 0;
+	return 1; //<-- if the script path is not a directory and exists and is executable, return 1
+
 }
 
 void Cgi::_printEnv()
