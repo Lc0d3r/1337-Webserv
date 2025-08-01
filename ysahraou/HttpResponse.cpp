@@ -280,6 +280,7 @@ void response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
     int port;
     std::string hostname;
     splithostport(request.headers.at("Host"), hostname, port);
+<<<<<<< HEAD
     RoutingResult routing_result = routingResult(config, hostname, port, request.path_without_query, request.method, error);
     // check error flag 
     std::cout << "error: " << error << std::endl;
@@ -299,6 +300,19 @@ void response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
             if (error == NO_ERROR) {
                 posthandler(&request, &routing_result, response);
             }
+=======
+    RoutingResult routing_result = routingResult(config, hostname, port, request.path, request.method, error);
+    // if (error == NO_ERROR) 
+    // {
+    //     // if (!routing_result.getExtension().empty())
+    //         // std::cout << "extension: " << routing_result.getExtension() << std::endl; 
+    // }
+    if (request.method == "GET") {
+        handleGETRequest(response, request, config, connections);
+    } else if (request.method == "POST") {
+        if (error == NO_ERROR) {
+            posthandler(&request, &routing_result, response);
+>>>>>>> 207e37598fd3990430ccd4be83c5e81f92be4b2d
         }
     }
         std::cout << "==================================[ response prepared ]============================\n";

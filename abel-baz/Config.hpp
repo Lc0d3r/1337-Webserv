@@ -46,6 +46,7 @@ struct Config
     std::vector<ServerConfig> servers;
 
     int getKeepAliveTimeout(std::string host, int port) const;
+    size_t getMaxBodySize(std::string host, int port) const;
 };
 
 #endif // CONFIG_HPP
