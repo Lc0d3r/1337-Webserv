@@ -40,7 +40,7 @@ std::vector<std::string> RoutingResult::getExtension() const // had lpart rah ed
 // DO: Match a server block based on host and port
 // RETURN: the first server block that matches the port, or the first server block matches the host if no port match is found
 const ServerConfig& matchServer(const Config& config, const std::string& host, int port, errorType& error) {
-    static ServerConfig emptyServer; // Static to avoid returning a dangling reference
+    const static ServerConfig emptyServer; // Static to avoid returning a dangling reference
     const ServerConfig* fallback = NULL;
 
     for (size_t i = 0; i < config.servers.size(); ++i)
@@ -54,7 +54,10 @@ const ServerConfig& matchServer(const Config& config, const std::string& host, i
             {
                 // Save first match as fallback
                 if (!fallback)
+                {
+                    error = NO_ERROR;
                     fallback = &server;
+                }
 
                 // Now check server_name match
                 for (size_t k = 0; k < server.server_name.size(); ++k)
@@ -79,7 +82,7 @@ const ServerConfig& matchServer(const Config& config, const std::string& host, i
 // RETURN: the location block that matches the URI
 const LocationConfig& matchLocation(const ServerConfig& server, const std::string& uri, errorType& error) {
     
-    static LocationConfig emptyLocation; // Static to avoid returning a dangling reference
+    const static LocationConfig emptyLocation; // Static to avoid returning a dangling reference
     const LocationConfig *match = NULL;
     size_t longest = 0;
 
