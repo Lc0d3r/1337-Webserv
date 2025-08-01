@@ -63,7 +63,10 @@ const ServerConfig& matchServer(const Config& config, const std::string& host, i
                 for (size_t k = 0; k < server.server_name.size(); ++k)
                 {
                     if (server.server_name[k] == host)
+                    {
+                        error = NO_ERROR;
                         return server; // Exact match
+                    }
                 }
             }
         }
@@ -82,7 +85,7 @@ const ServerConfig& matchServer(const Config& config, const std::string& host, i
 // RETURN: the location block that matches the URI
 const LocationConfig& matchLocation(const ServerConfig& server, const std::string& uri, errorType& error) {
     
-    const static LocationConfig emptyLocation; // Static to avoid returning a dangling reference
+     static const LocationConfig emptyLocation; // Static to avoid returning a dangling reference
     const LocationConfig *match = NULL;
     size_t longest = 0;
 
