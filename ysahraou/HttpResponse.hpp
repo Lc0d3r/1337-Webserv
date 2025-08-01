@@ -9,6 +9,7 @@
 #define CHUNK_SIZE 1024 * 1024 // 1 MB
 #define MAX_TO_SEND 1024 * 64 // 64 KB
 
+
 struct HttpResponse {
     std::string httpVersion;
     int statusCode;

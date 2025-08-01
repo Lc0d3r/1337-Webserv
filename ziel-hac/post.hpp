@@ -1,9 +1,14 @@
-#ifndef CGI_HPP
-#define CGI_HPP
+#ifndef POST_HPP
+#define POST_HPP
 
 #include "../ysahraou/HttpRequest.hpp"
-#include "../ysahraou/HttpResponse.hpp"
 #include "../abel-baz/Router.hpp"
+#include <sstream>
+#include <fcntl.h>
+#include <unistd.h>
+
+// Forward declaration
+struct HttpResponse;
 
 
 int posthandler(HttpRequest *req, RoutingResult *ser, HttpResponse &res);
