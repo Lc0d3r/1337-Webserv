@@ -196,6 +196,7 @@ int main(int argc, char **argv) {
         std::map<int, ConnectionInfo> connections;
         std::vector<int> listening_sockets = initListeningSockets(config, connections);
         if (listening_sockets.empty()) {
+            log_time();
             std::cerr << "No listening sockets initialized." << std::endl;
             return 1;
         }
@@ -203,6 +204,7 @@ int main(int argc, char **argv) {
         loop(connections, config);
     }
     catch (const std::exception& e) {
+        log_time();
         std::cerr << "Error: " << e.what() << std::endl;
         return 1;
     }
