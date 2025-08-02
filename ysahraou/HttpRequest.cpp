@@ -173,10 +173,15 @@ int parse_req(std::string request_data, int socket_fd, HttpRequest &request)
     request.headers = headers;
 
     // check if the request is a keep-alive request
-    if (headers.count("Connection") && headers["Connection"] == "keep-alive")
+    if (headers.count("Connection")) {
+        if (headers["Connection"] == "keep-alive")
+            request.is_keep_alive = true;
+        else
+            request.is_keep_alive = false;
+    }
+    else {
         request.is_keep_alive = true;
-    else
-        request.is_keep_alive = false;
+    }
     return 0;
 }
 

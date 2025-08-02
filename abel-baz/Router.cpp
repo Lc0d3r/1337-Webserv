@@ -184,7 +184,6 @@ RoutingResult routingResult(const Config& config, const std::string& host,
     const LocationConfig& location = matchLocation(server, uri, error);
     if (error != NO_ERROR)
     {
-        std::cerr << "Error occurred: " << error << std::endl;
         return RoutingResult(); // Return an empty RoutingResult on error
     }
 
@@ -217,10 +216,7 @@ RoutingResult routingResult(const Config& config, const std::string& host,
             if (fileExists(index_path))
             {
                 if (access(index_path.c_str(), R_OK) != 0)
-                {
-                    std::cerr << "Access denied to index file: " << index_path << std::endl;
                     error = ACCESS_DENIED;
-                }
                 result.use_autoindex = false;
                 result.file_path = index_path;
                 return result; // We're done
@@ -236,8 +232,6 @@ RoutingResult routingResult(const Config& config, const std::string& host,
             else
             {
                 error = NO_INDEX_FILE;
-                std::cerr << "No index file found and autoindex is disabled for: " 
-                    << result.file_path << std::endl;
             }
         }
         // if the file does not exist here that means that's ur prblm you provided the wrong path
@@ -248,12 +242,10 @@ RoutingResult routingResult(const Config& config, const std::string& host,
             // std::cout << "result.file_path ===> " << result.file_path << std::endl;
             if (!fileExists(result.file_path)){
                 error = FILE_NOT_FOUND;
-                std::cerr << "File does not exist: " << result.file_path << std::endl;
             }
             if (access(result.file_path.c_str(), R_OK) != 0)
             {
                 error = ACCESS_DENIED;
-                std::cerr << "Access denied to file: " << result.file_path << std::endl;
             }
         }
     }
@@ -261,7 +253,6 @@ RoutingResult routingResult(const Config& config, const std::string& host,
     if (!isMethodAllowed(location, method))
     {
         error = METHOD_NOT_ALLOWED;
-        std::cerr << "Method not allowed: " << method << " for URI: " << uri << std::endl;
     }
 
     return result;

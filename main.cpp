@@ -148,6 +148,8 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                         --i;
                         continue;
                     }
+                    else 
+                        connections[pollfds[i].fd].request = HttpRequest(); // reset request
                 }
             }
             else if (connections[pollfds[i].fd].type == CONNECTED && connections[pollfds[i].fd].is_old) {

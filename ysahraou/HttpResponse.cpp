@@ -288,6 +288,29 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
     }
 }
 
+bool handleDeleteRequest(HttpResponse& response, const HttpRequest& request, RoutingResult& routing_result) {
+    std::string file_path = routing_result.file_path;
+    if (remove(file_path.c_str()) == 0) {
+        response.statusCode = 200; // OK
+        response.statusMessage = "OK";
+        response.setTextBody("<h1>File deleted successfully</h1>");
+        response.addHeader("Content-Type", "text/html");
+        response.addHeader("Content-Length", intToString(response.body.size()));
+    } else {
+        response.statusCode = 500; // Internal Server Error
+        response.statusMessage = "Internal Server Error";
+        response.setTextBody("<h1>Failed to delete file</h1>");
+        response.addHeader("Content-Length", intToString(response.body.size()));
+        response.addHeader("Content-Type", "text/html");
+        return false;
+    }
+    if (request.is_keep_alive)
+        response.addHeader("Connection", "keep-alive");
+    else
+        response.addHeader("Connection", "close");
+    return true;
+}
+
 bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInfo &connections)
 {
     print_log( "Preparing response for request: " + request.method + " " + request.path_without_query );
@@ -325,6 +348,44 @@ bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
                 posthandler(&request, &routing_result, response);
             }
         }
+        else if (request.method == "DELETE") {
+            if (!handleDeleteRequest(response, request, routing_result)) {
+                print_log( "Failed to handle DELETE request." );
+                return false;
+            }
+        }
+    }
+    else if (error == SERVER_NOT_FOUND || error == LOCATION_NOT_FOUND || error == FILE_NOT_FOUND) {
+        print_log( "Server not found for host: " + hostname + ":" + intToString(port) );
+        response.statusCode = 404; // Not Found
+        response.statusMessage = "Not Found";
+        response.addHeader("Content-Type", "text/html");
+        response.setTextBody("<h1>404 Not Found</h1>");
+        response.addHeader("Content-Length", intToString(response.body.size()));
+        if (request.is_keep_alive)
+            response.addHeader("Connection", "keep-alive");
+        else
+            response.addHeader("Connection", "close");
+    } else if (error == METHOD_NOT_ALLOWED) {
+        print_log( "Method not allowed for path: " + request.path_without_query );
+        response.statusCode = 405; // Method Not Allowed
+        response.statusMessage = "Method Not Allowed";
+        response.addHeader("Content-Type", "text/html");
+        response.setTextBody("<h1>405 Method Not Allowed</h1>");
+        response.addHeader("Content-Length", intToString(response.body.size()));
+        response.addHeader("connection", "close");
+        return false; // Method not allowed, close connection
+    } else if (error == ACCESS_DENIED) {
+        print_log( "Access denied for path: " + request.path_without_query );
+        response.statusCode = 403; // Forbidden
+        response.statusMessage = "Forbidden";
+        response.addHeader("Content-Type", "text/html");
+        response.setTextBody("<h1>403 Forbidden</h1>");
+        response.addHeader("Content-Length", intToString(response.body.size()));
+        if (request.is_keep_alive)
+            response.addHeader("Connection", "keep-alive");
+        else
+            response.addHeader("Connection", "close");
     }
     print_log( "Response prepared with status code: " + intToString(response.statusCode) + " and message: " + response.statusMessage );
 
