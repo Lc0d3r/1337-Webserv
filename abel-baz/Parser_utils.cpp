@@ -145,8 +145,8 @@ void Parser::parseMaxBodySize(ServerConfig& server) {
     }
 
     long long size = std::atoll(val.text.c_str());
-    if (size < 0)
-        throw std::runtime_error("client_max_body_size must not be negative");
+    if (size < 0 || size > 1073741824) // negative or more than 1GB
+        throw std::runtime_error("client_max_body_size must not be negative or more than 1GB");
 
     server.max_body_size = static_cast<size_t>(size);
 

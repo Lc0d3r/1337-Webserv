@@ -33,8 +33,8 @@ enum errorType {
     AUTOINDEX_DISABLED
 };
 
-ServerConfig matchServer(const Config& config, const std::string& host, int port, errorType& error);
-LocationConfig matchLocation(const ServerConfig& server, const std::string& uri, errorType& error);
+const ServerConfig& matchServer(const Config& config, const std::string& host, int port, errorType& error);
+const LocationConfig& matchLocation(const ServerConfig& server, const std::string& uri, errorType& error);
 std::string finalPath(const LocationConfig& location, const std::string& uri);
 RoutingResult routingResult(const Config& config, const std::string& host,
                         int port, const std::string& uri, const std::string& method, errorType& error);
