@@ -20,7 +20,14 @@
 #include <sys/types.h>
 #include "../abel-baz/Config.hpp"
 #include "HttpRequest.hpp"
+#include <iostream>
+#include <ctime>
+#include <iomanip>
 
+// Color macros
+#define COLOR_RED    "\033[31m"
+#define COLOR_GREEN  "\033[32m"
+#define COLOR_RESET  "\033[0m"
 
 enum Type {
     LISTENER,  // Listening socket
@@ -28,6 +35,8 @@ enum Type {
 };
 
 struct ConnectionInfo {
+    std::string server_ip;
+    std::string server_port;
     Type type;
     bool keep_alive;
     time_t last_active;
@@ -54,3 +63,4 @@ struct ConnectionInfo {
 int init_Socket(int domain, int type, int protocol, char *port, char *interface);
 std::string intToString(int value);
 std::vector<int> initListeningSockets(const Config &config, std::map<int, ConnectionInfo> &connections);
+void log_time();

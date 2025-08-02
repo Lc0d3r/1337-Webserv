@@ -6,6 +6,8 @@
 #include "sockets.hpp"
 #include "../abel-baz/Router.hpp"
 
+
+
 #define CHUNK_SIZE 1024 * 1024 // 1 MB
 #define MAX_TO_SEND 1024 * 64 // 64 KB
 
@@ -16,20 +18,20 @@ struct HttpResponse {
     std::string statusMessage;
     std::map<std::string, std::string> headers;
     std::vector<char> body;   // For PDFs, images, etc.
-
+    
     HttpResponse() : httpVersion("HTTP/1.1"), statusCode(200), statusMessage("OK") {}
-
+    
     HttpResponse(int code, const std::string& message)
-        : httpVersion("HTTP/1.1"), statusCode(code), statusMessage(message) {}
-
+    : httpVersion("HTTP/1.1"), statusCode(code), statusMessage(message) {}
+    
     void addHeader(const std::string& key, const std::string& value) ;
-
+    
     void setTextBody(const std::string& content);
-
+    
     std::string toString() const;
 };
 
 
-void response(int client_fd,HttpRequest &request, Config &config, ConnectionInfo &connections);
+bool response(int client_fd,HttpRequest &request, Config &config, ConnectionInfo &connections);
 void splithostport(const std::string& host, std::string& hostname, int& port);
 bool resumeSending(ConnectionInfo& connections, std::vector<char> &buffer, int client_fd);

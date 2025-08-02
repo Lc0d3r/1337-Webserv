@@ -34,6 +34,7 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
 
             // Check for errors or disconnections
             if (pollfds[i].revents & (POLLHUP | POLLERR)) {
+                log_time();
                 std::cout << "Client disconnected or socket error: " << pollfds[i].fd << std::endl;
                 close(pollfds[i].fd);
                 connections.erase(pollfds[i].fd);
@@ -45,6 +46,7 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
             if (connections.count(pollfds[i].fd) &&
                 connections[pollfds[i].fd].type == CONNECTED &&
                 time(NULL) - connections[pollfds[i].fd].last_active > config.getKeepAliveTimeout("", connections[pollfds[i].fd].portToConnect)) {
+                log_time();
                 std::cout << "Client socket " << pollfds[i].fd << " timed out." << std::endl;
                 close(pollfds[i].fd);
                 connections.erase(pollfds[i].fd);
@@ -54,7 +56,7 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
             }
             // Check for readable sockets
             if (pollfds[i].revents & POLLIN) {
-                std::cout << "\nSocket " << pollfds[i].fd << " is ready for reading..." << std::endl;
+                // std::cout << "\nSocket " << pollfds[i].fd << " is ready for reading..." << std::endl;
                 if (connections[pollfds[i].fd].type == LISTENER) {
                     // accept a new connection
                     client_fd = accept(pollfds[i].fd, NULL, NULL);
@@ -62,12 +64,13 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                         perror("accept");
                         continue;
                     }
-                    std::cout << "New connection accepted on socket: " << client_fd << std::endl;
                     fcntl(client_fd, F_SETFL, O_NONBLOCK); // set the socket to non-blocking mode
                     connections[client_fd] = ConnectionInfo(CONNECTED, true);
                     connections[client_fd].last_active = time(NULL);
                     connections[client_fd].portToConnect = connections[pollfds[i].fd].port;
                     connections[client_fd].hostToConnect = connections[pollfds[i].fd].host;
+                    connections[client_fd].server_ip = connections[pollfds[i].fd].server_ip;
+                    connections[client_fd].server_port = connections[pollfds[i].fd].server_port;
                     struct pollfd pfd;
                     pfd.fd = client_fd; // connected socket
                     pfd.events = POLLIN; // events to monitor
@@ -75,11 +78,16 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
 
                     // requst object to hold the request data
                     connections[client_fd].request = HttpRequest();
-                    std::cout << "New connection added to connections map." << std::endl;
+                    log_time();
+                    std::cout << "Accepted new connection comming to server: "
+                              << connections[client_fd].server_ip << ":"
+                              << connections[client_fd].server_port << std::endl;
                 }
                 else if (connections[pollfds[i].fd].type == CONNECTED) {
                     client_fd = pollfds[i].fd;
-                    std::cout << "Data available on socket: " << client_fd << std::endl;
+                    log_time();
+                    std::cout << "Reading request comming to server: " << connections[client_fd].server_ip << ":"
+                              << connections[client_fd].server_port << std::endl;
 
                     // read data from the client
                     // read the headers
@@ -88,8 +96,6 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                         readHeaders(request_data, client_fd);
                         if (parse_req(request_data, client_fd, connections[pollfds[i].fd].request) )
                         {
-                            // close connection if parsing failed
-                            std::cout << "Failed to parse request, closing connection." << std::endl;
                             close(client_fd);
                             connections.erase(client_fd);
                             pollfds.erase(pollfds.begin() + i);
@@ -97,6 +103,21 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                             continue;
                         }
                     }
+                    std::string str = decodePath(connections[pollfds[i].fd].request.path);
+                    if (str.empty()) {
+                        std::cerr << "Invalid path in request: " << connections[pollfds[i].fd].request.path << std::endl;
+                        close(client_fd);
+                        connections.erase(client_fd);
+                        pollfds.erase(pollfds.begin() + i);
+                        --i;
+                        continue;
+                    }
+                    connections[pollfds[i].fd].request.path = str;
+                    removeQueryString(connections[pollfds[i].fd].request);
+                    log_time();
+                    std::cout << "Request with method: " << connections[pollfds[i].fd].request.method
+                    << " and path: " << connections[pollfds[i].fd].request.path_without_query
+                    << " received." << std::endl;
                     // read the body
                     std::string str_body;
                     readBody(connections[pollfds[i].fd].request, str_body, client_fd);
@@ -109,41 +130,35 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                         response.addHeader("Connection", "close");
                         response.addHeader("Content-Length", "57");
                         response.setTextBody("<html><body><h1>413 Payload Too Large</h1></body></html>");
+                        log_time();
                         std::cout << "Request body size exceeds limit, sending 413 response." << std::endl;
                         write(client_fd, response.toString().c_str(), response.toString().size());
                         write (client_fd, response.body.data(), response.body.size());
                         continue; // no body to read or body size exceeds limit
                     }
                     if (connections[pollfds[i].fd].request.is_keep_alive) {
-                        std::cout << "Connection is keep-alive setting keep_alive to true" << std::endl;
                         connections[pollfds[i].fd].keep_alive = true;
                         connections[pollfds[i].fd].last_active = time(NULL);
                     } else {
                         connections[pollfds[i].fd].keep_alive = false;
                     }
                     if (connections[pollfds[i].fd].request.in_progress) {
+                        log_time();
                         std::cout << "Request is in progress, waiting for more data..." << std::endl;
                         continue; // request is still in progress, wait for more data
                     }
-                    std::cout << "=====================>>>>>requestData read successfully" << std::endl;
-                    // handle keep-alive connections
-
-                    // decode the request path
-                    std::string str = decodePath(connections[pollfds[i].fd].request.path);
-                    if (str.empty()) {
-                        std::cerr << "Invalid path in request: " << connections[pollfds[i].fd].request.path << std::endl;
+                    log_time();
+                    std::cout << "Request is complete, preparing response..." << std::endl;
+                    if (!response(pollfds[i].fd, connections[pollfds[i].fd].request, config, connections[pollfds[i].fd]))
+                    {
+                        log_time();
+                        std::cout << "Error in response, closing connection." << std::endl;
                         close(client_fd);
                         connections.erase(client_fd);
                         pollfds.erase(pollfds.begin() + i);
                         --i;
                         continue;
                     }
-                    connections[pollfds[i].fd].request.path = str;
-                    removeQueryString(connections[pollfds[i].fd].request);
-                    
-                    // response
-                    std::cout << "====>request parsed successfully" << std::endl;
-                    response(pollfds[i].fd, connections[pollfds[i].fd].request, config, connections[pollfds[i].fd]);
                 }
             }
             else if (connections[pollfds[i].fd].type == CONNECTED && connections[pollfds[i].fd].is_old) {

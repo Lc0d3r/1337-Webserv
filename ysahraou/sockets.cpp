@@ -1,5 +1,18 @@
 #include "sockets.hpp"
 
+void log_time() {
+    std::time_t now = std::time(0);             
+    std::tm *ltm = std::localtime(&now);        
+
+    std::cout << "[" << 1900 + ltm->tm_year << "-"
+              << std::setw(2) << std::setfill('0') << 1 + ltm->tm_mon << "-"
+              << std::setw(2) << std::setfill('0') << ltm->tm_mday << " "
+              << std::setw(2) << std::setfill('0') << ltm->tm_hour << ":"
+              << std::setw(2) << std::setfill('0') << ltm->tm_min << ":"
+              << std::setw(2) << std::setfill('0') << ltm->tm_sec << "] ";
+}
+
+
 int init_Socket(int domain, int type, int protocol, char *port, char *interface) {
     int socket_fd;
     struct addrinfo hints, *res;
@@ -56,7 +69,6 @@ std::vector<int> initListeningSockets(const Config &config, std::map<int, Connec
         {
             for (int j=0; j < (int)config.servers[i].listens.size(); j++)
             {
-                std::cout << "host: " << config.servers[i].listens[j].listen_host << " port: " << config.servers[i].listens[j].listen_port << std::endl;
                 socket_fd = init_Socket(AF_INET, SOCK_STREAM, 0, 
                     (char *)intToString(config.servers[i].listens[j].listen_port).c_str(),
                     (char *)config.servers[i].listens[j].listen_host.c_str());
@@ -70,6 +82,8 @@ std::vector<int> initListeningSockets(const Config &config, std::map<int, Connec
                 connections[socket_fd] = ConnectionInfo(LISTENER, false);
                 connections[socket_fd].port = config.servers[i].listens[j].listen_port;
                 connections[socket_fd].host = config.servers[i].listens[j].listen_host;
+                connections[socket_fd].server_ip = config.servers[i].listens[j].listen_host;
+                connections[socket_fd].server_port = intToString(config.servers[i].listens[j].listen_port);
 
                 // Set the socket to non-blocking mode
                 int flags = fcntl(socket_fd, F_SETFL, O_NONBLOCK);
@@ -85,7 +99,8 @@ std::vector<int> initListeningSockets(const Config &config, std::map<int, Connec
                     exit(EXIT_FAILURE);
                     return std::vector<int>();
                 }
-                std::cout << "Listening on http://" << config.servers[i].listens[j].listen_host 
+                log_time();
+                std::cout << "Listening on " << config.servers[i].listens[j].listen_host
                           << ":" << config.servers[i].listens[j].listen_port << std::endl;
                 listening_fds.push_back(socket_fd);
             }
@@ -99,3 +114,4 @@ ConnectionInfo::ConnectionInfo(Type t, bool ka) : type(t), keep_alive(ka), pos(0
 }
 
 ConnectionInfo::ConnectionInfo() : pos(0), is_old(false) {}
+
