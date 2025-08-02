@@ -1,5 +1,6 @@
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
+#include "utils.hpp"
 
 HttpRequest::HttpRequest() : in_progress(false), done(false), byte_readed(0), content_length(0) {}
 
@@ -103,8 +104,7 @@ int parse_req(std::string request_data, int socket_fd, HttpRequest &request)
     sss >> method >> path >> http_version;
     if (method != "GET" && method != "DELETE" && method != "POST") {
         //hand the  response "bad request 400"
-        log_time();
-        std::cout << "Method not allowed: " << method << " sendin 400 Bad Request response." << std::endl;
+        print_log( "Method not allowed: " + method + " sendin 400 Bad Request response." );
         const char* response_400 =
             "HTTP/1.1 400 Bad Request\r\n"
             "Content-Type: text/html\r\n"
@@ -119,8 +119,7 @@ int parse_req(std::string request_data, int socket_fd, HttpRequest &request)
     }
     if (http_version != "HTTP/1.1") {
         // send 505 response
-        log_time();
-        std::cout << "HTTP version not supported: " << http_version << " sending 505 HTTP Version Not Supported response." << std::endl;
+        print_log( "HTTP version not supported: " + http_version + " sending 505 HTTP Version Not Supported response.");
         const char* response_505 =
             "HTTP/1.1 505 HTTP Version Not Supported\r\n"
             "Content-Type: text/html\r\n"
@@ -194,8 +193,7 @@ bool readChunkedBody(HttpRequest &request, std::string &str_body, int new_socket
 
 void readBody(HttpRequest &request, std::string &str_body, int new_socket) {
     int content_length = 0;
-    log_time();
-    std::cout << "Reading the body..." << std::endl;
+    print_log( "Reading the body..." );
     if (request.headers.count("Content-Length"))
     {
         content_length = std::atoi(request.headers["Content-Length"].c_str());
@@ -214,13 +212,11 @@ void readBody(HttpRequest &request, std::string &str_body, int new_socket) {
         request.body += str_body;
         if (request.byte_readed < content_length) {
             request.in_progress = true;
-            log_time();
-            std::cout << "Request is in progress, bytes readed: " << request.byte_readed << ", content length: " << content_length << std::endl;
+            print_log( "Request is in progress, bytes readed: " + intToString(request.byte_readed) + ", content length: " + intToString(content_length ));
         } else {
             request.done = true;
             request.in_progress = false;
-            log_time();
-            std::cout << "Request done, bytes readed: " << request.byte_readed << ", content length: " << content_length << std::endl;
+            print_log( "Request done, bytes readed: " + intToString(request.byte_readed) + ", content length: " + intToString(content_length) );
         }
     }
     else 

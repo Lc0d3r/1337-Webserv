@@ -1,4 +1,5 @@
 #include "sockets.hpp"
+#include "utils.hpp"
 
 void log_time() {
     std::time_t now = std::time(0);             
@@ -99,9 +100,7 @@ std::vector<int> initListeningSockets(const Config &config, std::map<int, Connec
                     exit(EXIT_FAILURE);
                     return std::vector<int>();
                 }
-                log_time();
-                std::cout << "Listening on " << config.servers[i].listens[j].listen_host
-                          << ":" << config.servers[i].listens[j].listen_port << std::endl;
+                print_log("Listening on " + config.servers[i].listens[j].listen_host + ":" + intToString(config.servers[i].listens[j].listen_port));
                 listening_fds.push_back(socket_fd);
             }
         }

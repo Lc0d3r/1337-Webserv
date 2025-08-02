@@ -1,9 +1,10 @@
 #include "HttpResponse.hpp"
 #include "sockets.hpp"
-#include "../ziel-hac/cgi.hpp"
-#include "../ziel-hac/post.hpp"
-#include <dirent.h>
-#include <fstream>
+#include "utils.hpp"
+
+// bool get_error_page(HttpResponse &response, int error_code, const std::string &error_message, const RoutingResult &routing_result) {
+//     std::string error_page_path = routing_result.
+// }
 
 
 std::string HttpResponse::toString() const {
@@ -272,15 +273,13 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
 
 bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInfo &connections)
 {
-    log_time();
-    std::cout << "Preparing response for request: " << request.method << " " << request.path_without_query << std::endl;
+    print_log( "Preparing response for request: " + request.method + " " + request.path_without_query );
     HttpResponse response(200, "OK");
     errorType error = NO_ERROR;
     int port;
     std::string hostname;
     if (request.headers.count("Host") == 0) {
-        log_time();
-        std::cerr << "Host header not found in request, closing connection." << std::endl;
+        print_log( "Host header not found in request, closing connection." );
         response.statusCode = 400; // Bad Request
         response.statusMessage = "Bad Request";
         response.addHeader("Content-Type", "text/html");
@@ -300,7 +299,7 @@ bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
             Cgi handlecgi(routing_result, request, response);
             if (handlecgi.getvalidChecker() == 1)
             if (!handlecgi._executeScript(routing_result, request, response))
-            std::cout << "Failed to execute CGI script." << std::endl;
+            print_log( "Failed to execute CGI script." );
         }
         else if (request.method == "GET") {
             handleGETRequest(response, request, config, connections);
@@ -310,14 +309,12 @@ bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
             }
         }
     }
-    log_time();
-    std::cout << "Response prepared with status code: " << response.statusCode << " and message: " << response.statusMessage << std::endl;
+    print_log( "Response prepared with status code: " + intToString(response.statusCode) + " and message: " + response.statusMessage );
 
     // sending the response headers
     write(client_fd , response.toString().c_str() , strlen(response.toString().c_str()));
     // sending the response body
     write(client_fd, response.body.data(), response.body.size());
-    log_time();
-    std::cout << "Response sent successfully." << std::endl;
+    print_log( "Response sent successfully." );
     return true;
 }

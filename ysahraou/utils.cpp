@@ -39,3 +39,8 @@ std::string decodePath(std::string path)
     }
     return result_path;
 }
+
+void print_log(const std::string& message) {
+    log_time();
+    std::cout << message << std::endl;
+}
