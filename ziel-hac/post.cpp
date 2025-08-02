@@ -33,14 +33,8 @@ int parsechunked(HttpRequest &req, RoutingResult &ser) //<-- i need to parse chu
 int handle_multiple_form_data(HttpRequest &req, RoutingResult &ser)
 {
 	std::string boundary = req.getBoundary();
-	std::cout << "Boundary: " << boundary << std::endl;
-	std::cout << req.body << std::endl;
 	std::vector<std::string> parts = split(req.body, "--" + boundary);
 	parts.erase(parts.end() - 1);
-	// for (std::vector<std::string>::iterator it = parts.begin(); it != parts.end(); ++it)
-	// {
-	// 	std::cout << "Part: " << *it << "end" << std::endl;
-	// }
 	for(size_t i = 0; i < parts.size(); ++i)
 	{
 		size_t n = 0;
@@ -69,9 +63,7 @@ int handle_multiple_form_data(HttpRequest &req, RoutingResult &ser)
 			std::cout << "Filename: " << filename << std::endl;
 			int fd = open(filename.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
 			if (fd < 0)
-			{
 				return 0;
-			}
 			if (write(fd, headers_and_body[1].c_str(), headers_and_body[1].length()) < 0)
 			{
 				std::cerr << "Failed to write to file: " << filename << std::endl;
@@ -96,7 +88,28 @@ int posthandler(HttpRequest *req, RoutingResult *ser, HttpResponse &res)
 				res.statusMessage = "Internal Server Error";
 				res.addHeader("Content-Length", intToString(res.body.size()));
 				res.addHeader("Content-Type", "text/html");
+				if (req->is_keep_alive) {
+					res.addHeader("Connection", "keep-alive");
+				} else {
+					res.addHeader("Connection", "close");
+				}
 				return 0;
+			}
+			else
+			{
+				res.setTextBody("<h1>uploaded successfully</h1>");
+				res.statusCode = 200;
+				res.statusMessage = "OK";
+				res.addHeader("Content-Length", intToString(res.body.size()));
+				res.addHeader("Content-Type", "text/html");
+				if (req->is_keep_alive)
+					res.addHeader("Connection", "keep-alive");
+				else 
+					res.addHeader("Connection", "close");
+				if (!req->getSessionId().empty()) {
+					res.addHeader("set-Cookie", "session_id=" + req->getSessionId());
+				}else
+					res.addHeader("set-Cookie", "session_id=" + res.setSessionId());
 			}
 		}
         else if (!req->getContentLength().empty())
@@ -108,18 +121,42 @@ int posthandler(HttpRequest *req, RoutingResult *ser, HttpResponse &res)
 				res.statusMessage = "Internal Server Error";
 				res.addHeader("Content-Length", intToString(res.body.size()));
 				res.addHeader("Content-Type", "text/html");
+				if (req->is_keep_alive) {
+					res.addHeader("Connection", "keep-alive");
+				} else {
+					res.addHeader("Connection", "close");
+				}
 				return 0;
 			}
-
+			else
+			{
+				res.setTextBody("<h1>uploaded successfully</h1>");
+				res.statusCode = 200;
+				res.statusMessage = "OK";
+				res.addHeader("Content-Length", intToString(res.body.size()));
+				res.addHeader("Content-Type", "text/html");
+				if (req->is_keep_alive)
+					res.addHeader("Connection", "keep-alive");
+				else 
+					res.addHeader("Connection", "close");
+				if (!req->getSessionId().empty()) {
+					res.addHeader("set-Cookie", "session_id=" + req->getSessionId());
+				}else
+					res.addHeader("set-Cookie", "session_id=" + res.setSessionId());
+			}
 		}
         else
 		{
-			
 			res.setTextBody("<h1>411 Length Required</h1>");
 			res.statusCode = 411;
 			res.statusMessage = "Length Required";
 			res.addHeader("Content-Length", intToString(res.body.size()));
 			res.addHeader("Content-Type", "text/html");
+			if (req->is_keep_alive) {
+				res.addHeader("Connection", "keep-alive");
+			} else {
+				res.addHeader("Connection", "close");
+			}
 			return 0;
 		}
     }

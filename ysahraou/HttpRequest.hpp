@@ -42,6 +42,7 @@ struct HttpRequest {
     std::string getBoundary() const;
     std::string getTransferEncoding() const;
     std::string getCookie() const;
+    std::string getSessionId() const;
 };
 
 void removeQueryString(HttpRequest &request);

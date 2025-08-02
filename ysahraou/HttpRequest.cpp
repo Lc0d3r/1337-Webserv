@@ -3,12 +3,27 @@
 
 HttpRequest::HttpRequest() : in_progress(false), done(false), byte_readed(0), content_length(0) {}
 
+std::string HttpRequest::getSessionId() const
+{
+    if (headers.count("Cookie"))
+    {
+        size_t pos = headers.at("Cookie").find("session_id=");
+        if (pos != std::string::npos)
+        {
+            pos += std::string("session_id=").length();
+            std::string session_id = headers.at("Cookie").substr(pos, headers.at("Cookie").find(';', pos) - pos);
+            return session_id;
+        }
+    }
+    return std::string();
+}
+
 std::string HttpRequest::getCookie() const
 {
-if (headers.count("Cookie")) {
-    return headers.at("Cookie");
-}
-return std::string();
+    if (headers.count("Cookie")) {
+        return headers.at("Cookie");
+    }
+    return std::string();
 }
 
 std::string HttpRequest::getTransferEncoding() const

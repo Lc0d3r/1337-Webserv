@@ -7,17 +7,24 @@
 
 
 std::string HttpResponse::toString() const {
-        std::string responseString = httpVersion + " " + intToString(statusCode) + " " + statusMessage + "\r\n";
-
-        // Ensure all headers, including Content-Type, are added
-        for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it) {
-            responseString += it->first + ": " + it->second + "\r\n";
-        }
-
-        responseString += "\r\n"; // End of headers
-
-        return responseString;
+    std::string responseString = httpVersion + " " + intToString(statusCode) + " " + statusMessage + "\r\n";
+    
+    // Ensure all headers, including Content-Type, are added
+    for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it) {
+        responseString += it->first + ": " + it->second + "\r\n";
+    }
+    
+    responseString += "\r\n"; // End of headers
+    
+    return responseString;
 };
+
+std::string HttpResponse::setSessionId()
+{
+    std::srand(std::time(0));
+    size_t sessionid = std::rand();
+    return intToString(sessionid);
+}
 
 void HttpResponse::setTextBody(const std::string& content) {
     body = std::vector<char>(content.begin(), content.end());
@@ -223,6 +230,16 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
             } else {
                 response.addHeader("Connection", "close");
             }
+            if (!request.getSessionId().empty())
+            {
+                response.addHeader("set-Cookie", "session_id=" + request.getSessionId());
+                std::cout << "----------------------------------------Session ID get in response: " << request.getSessionId() << std::endl;
+            }
+            else
+            {
+                response.addHeader("set-Cookie", "session_id=" + response.setSessionId());
+                std::cout << "++++++++++++++++++++++++++++++++++++++++Session ID set in response: " << response.setSessionId() << std::endl;
+            }
         } else {
             response.statusCode = 500; // Internal Server Error
             response.statusMessage = "Internal Server Error";
@@ -285,7 +302,6 @@ void response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
     std::cout << "error: " << error << std::endl;
     if (error == NO_ERROR)
     {
-        std::cout << "====================================================CGI extension found, handling CGI script." << std::endl;
         if (!routing_result.getExtension().empty())
         {
             Cgi handlecgi(routing_result, request, response);

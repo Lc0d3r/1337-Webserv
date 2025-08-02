@@ -5,6 +5,9 @@
 #include "HttpRequest.hpp"
 #include "sockets.hpp"
 #include "../abel-baz/Router.hpp"
+#include <cstdlib>
+#include <ctime>   
+
 
 #define CHUNK_SIZE 1024 * 1024 // 1 MB
 #define MAX_TO_SEND 1024 * 64 // 64 KB
@@ -25,6 +28,8 @@ struct HttpResponse {
     void addHeader(const std::string& key, const std::string& value) ;
 
     void setTextBody(const std::string& content);
+
+    std::string setSessionId();
 
     std::string toString() const;
 };
