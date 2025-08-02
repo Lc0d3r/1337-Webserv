@@ -118,6 +118,8 @@ int parse_req(std::string request_data, int socket_fd, HttpRequest &request)
     sss >> method >> path >> http_version;
     if (method != "GET" && method != "DELETE" && method != "POST") {
         //hand the  response "bad request 400"
+        log_time();
+        std::cout << "Method not allowed: " << method << " sendin 400 Bad Request response." << std::endl;
         const char* response_400 =
             "HTTP/1.1 400 Bad Request\r\n"
             "Content-Type: text/html\r\n"
@@ -132,6 +134,8 @@ int parse_req(std::string request_data, int socket_fd, HttpRequest &request)
     }
     if (http_version != "HTTP/1.1") {
         // send 505 response
+        log_time();
+        std::cout << "HTTP version not supported: " << http_version << " sending 505 HTTP Version Not Supported response." << std::endl;
         const char* response_505 =
             "HTTP/1.1 505 HTTP Version Not Supported\r\n"
             "Content-Type: text/html\r\n"
@@ -146,10 +150,6 @@ int parse_req(std::string request_data, int socket_fd, HttpRequest &request)
     request.method = method;
     request.path = path;
     request.http_version = http_version;
-    // print the values 
-    std::cout << "method = " << request.method << std::endl;
-    std::cout << "path = " << request.path << std::endl;
-    std::cout << "http version = " << request.http_version << std::endl;
     // parse the other headers
     std::map<std::string, std::string> headers;
     while (std::getline(req_stream, line)) {
@@ -173,24 +173,11 @@ int parse_req(std::string request_data, int socket_fd, HttpRequest &request)
     }
     request.headers = headers;
 
-    // print the headers
-    std::map<std::string, std::string> headers_copy = request.headers;
-    for (int i = 0; i < (int)headers_copy.size(); ++i) {
-        std::cout << "header [" << i << "]: [" << headers_copy.begin()->first << "] : [" << headers_copy.begin()->second << "]" << std::endl;
-        headers_copy.erase(headers_copy.begin());
-    }
-
     // check if the request is a keep-alive request
     if (headers.count("Connection") && headers["Connection"] == "keep-alive")
-    {
         request.is_keep_alive = true;
-        std::cout << "Connection is keep-alive" << std::endl;
-    }
     else
-    {
         request.is_keep_alive = false;
-        std::cout << "Connection is not keep-alive" << std::endl;
-    }
     return 0;
 }
 
@@ -207,13 +194,26 @@ void readHeaders(std::string &request_data, int new_socket) {
     }
 }
 
+bool readChunkedBody(HttpRequest &request, std::string &str_body, int new_socket) {
+    char buffer[2] = {0};
+    while (str_body.find("\r\n\r\n") == std::string::npos && request.method == "POST")
+    {
+        int bytes = read(new_socket, buffer, 1);
+        if (bytes <= 0) {
+            break;
+        }
+        str_body.append(buffer, bytes);
+    }
+    return true;
+}
+
 void readBody(HttpRequest &request, std::string &str_body, int new_socket) {
     int content_length = 0;
-    std::cout << "reading the body..." << std::endl;
+    log_time();
+    std::cout << "Reading the body..." << std::endl;
     if (request.headers.count("Content-Length"))
     {
         content_length = std::atoi(request.headers["Content-Length"].c_str());
-        std::cout << "true content lenght is there -> " << request.headers.at("Content-Length") << "\n";
         request.content_length = content_length;
         char buffer[2] = {0};
         while (str_body.size() < CHUNK_SIZE)
@@ -229,29 +229,24 @@ void readBody(HttpRequest &request, std::string &str_body, int new_socket) {
         request.body += str_body;
         if (request.byte_readed < content_length) {
             request.in_progress = true;
-            std::cout << "request is in progress, bytes readed: " << request.byte_readed << ", content length: " << content_length << std::endl;
+            log_time();
+            std::cout << "Request is in progress, bytes readed: " << request.byte_readed << ", content length: " << content_length << std::endl;
         } else {
             request.done = true;
             request.in_progress = false;
-            std::cout << "request done, bytes readed: " << request.byte_readed << ", content length: " << content_length << std::endl;
+            log_time();
+            std::cout << "Request done, bytes readed: " << request.byte_readed << ", content length: " << content_length << std::endl;
         }
     }
-    // else 
-    // {
-    //     std::cout << "false content lenght is not there\n";
-    //     char buffer[2] = {0};
-    //     while (str_body.find("\r\n\r\n") == std::string::npos && request.method == "POST")
-    //     {
-    //         int bytes = read(new_socket, buffer, 1);
-    //         if (bytes <= 0) {
-    //             // client disconnected or error
-    //             break;
-    //         }
-    //         str_body.append(buffer, bytes);
-    //     }
-    //     request.body = str_body;
-    // }
-    // std::cout << "done reading the body" << std::endl;
+    else 
+    {
+        if (readChunkedBody(request, str_body, new_socket)) {
+            request.in_progress = false;
+            request.done = true;
+            request.byte_readed = str_body.size();
+            request.body = str_body;
+        }
+    }
 }
 
 void removeQueryString(HttpRequest &request) {

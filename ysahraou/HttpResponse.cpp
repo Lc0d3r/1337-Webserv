@@ -287,19 +287,29 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
     }
 }
 
-void response(int client_fd, HttpRequest &request, Config &config, ConnectionInfo &connections)
+bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInfo &connections)
 {
-    (void)request;
-    (void)config;
-    std::cout << "==================================[preparing response]============================\n";
+    log_time();
+    std::cout << "Preparing response for request: " << request.method << " " << request.path_without_query << std::endl;
     HttpResponse response(200, "OK");
     errorType error = NO_ERROR;
     int port;
     std::string hostname;
+    if (request.headers.count("Host") == 0) {
+        log_time();
+        std::cerr << "Host header not found in request, closing connection." << std::endl;
+        response.statusCode = 400; // Bad Request
+        response.statusMessage = "Bad Request";
+        response.addHeader("Content-Type", "text/html");
+        response.setTextBody("<h1>400 Bad Request</h1>");
+        response.addHeader("Content-Length", intToString(response.body.size()));
+        write(client_fd, response.toString().c_str(), response.toString().size());
+        write(client_fd, response.body.data(), response.body.size());
+        return false;
+    }
     splithostport(request.headers.at("Host"), hostname, port);
     RoutingResult routing_result = routingResult(config, hostname, port, request.path_without_query, request.method, error);
     // check error flag 
-    std::cout << "error: " << error << std::endl;
     if (error == NO_ERROR)
     {
         if (!routing_result.getExtension().empty())
@@ -317,15 +327,14 @@ void response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
             }
         }
     }
-        std::cout << "==================================[ response prepared ]============================\n";
+    log_time();
+    std::cout << "Response prepared with status code: " << response.statusCode << " and message: " << response.statusMessage << std::endl;
 
-    std::cout << "==================================[sending response...]============================\n";
-    // sending the response
-    // headers
-    std::cout << "Response Headers:\n" << response.toString() << std::endl;
     // sending the response headers
     write(client_fd , response.toString().c_str() , strlen(response.toString().c_str()));
     // sending the response body
     write(client_fd, response.body.data(), response.body.size());
-    std::cout << "==================================[   response sent   ]============================\n";
+    log_time();
+    std::cout << "Response sent successfully." << std::endl;
+    return true;
 }

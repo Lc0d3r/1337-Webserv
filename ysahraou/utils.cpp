@@ -37,6 +37,5 @@ std::string decodePath(std::string path)
         }
         result_path += path[i]; // Keep other characters as is
     }
-    std::cout << "Converted path: " << result_path << std::endl;
     return result_path;
 }
