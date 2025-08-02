@@ -9,6 +9,9 @@
 #include "../ziel-hac/post.hpp"
 #include <dirent.h>
 #include <fstream>
+#include <cstdlib>
+#include <ctime>   
+
 
 
 
@@ -31,7 +34,9 @@ struct HttpResponse {
     void addHeader(const std::string& key, const std::string& value) ;
     
     void setTextBody(const std::string& content);
-    
+
+    std::string setSessionId();
+
     std::string toString() const;
 };
 

@@ -37,6 +37,11 @@ int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res
 		res.statusMessage = "Internal Server Error";
 		res.addHeader("Content-Length", intToString(res.body.size()));
 		res.addHeader("Content-Type", "text/html");
+		if (req.is_keep_alive) {
+			res.addHeader("Connection", "keep-alive");
+		} else {
+			res.addHeader("Connection", "close");
+		}
 		return (0);
 	}
 	if(pid == 0)
@@ -50,6 +55,11 @@ int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res
 				res.statusMessage = "Not Found";
 				res.addHeader("Content-Length", intToString(res.body.size()));
 				res.addHeader("Content-Type", "text/html");
+				if (req.is_keep_alive) {
+					res.addHeader("Connection", "keep-alive");
+				} else {
+					res.addHeader("Connection", "close");
+				}
 				return (0);
 			}
 			else
@@ -61,6 +71,11 @@ int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res
 					res.statusMessage = "Internal Server Error";
 					res.addHeader("Content-Length", intToString(res.body.size()));
 					res.addHeader("Content-Type", "text/html");
+					if (req.is_keep_alive) {
+						res.addHeader("Connection", "keep-alive");
+					} else {
+						res.addHeader("Connection", "close");
+					}
 					return (0);
 				}
 			}
@@ -72,6 +87,11 @@ int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res
 			res.statusMessage = "Internal Server Error";
 			res.addHeader("Content-Length", intToString(res.body.size()));
 			res.addHeader("Content-Type", "text/html");
+			if (req.is_keep_alive) {
+				res.addHeader("Connection", "keep-alive");
+			} else {
+				res.addHeader("Connection", "close");
+			}
 			return (0);
 		}
 		close(input_fd[1]);
@@ -90,6 +110,11 @@ int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res
 			res.statusMessage = "Internal Server Error";
 			res.addHeader("Content-Length", intToString(res.body.size()));
 			res.addHeader("Content-Type", "text/html");
+			if (req.is_keep_alive) {
+				res.addHeader("Connection", "keep-alive");
+			} else {
+				res.addHeader("Connection", "close");
+			}
 			return (0);
 		}
 
@@ -111,6 +136,7 @@ int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res
 		}
 		res.setTextBody(body);
 		res.headers["Content-Length"] = intToString(body.length());
+
 	}
 	return 1; // Add return statement
 }
@@ -200,13 +226,19 @@ void Cgi::setEnv(RoutingResult &serv, HttpRequest &req)
 //RETURN: 0 if all above is true, 1 if any of the above is false
 int Cgi::_checker(RoutingResult &serv, HttpRequest &req, HttpResponse &res)
 {
-	if (!_checkExtention(req.path_without_query, serv.getExtension()) && !_checkPathExtension(req.getExtension(), getScriptFilename(req)))
+	if (!_checkExtention(req.path_without_query, serv.getExtension()) || !_checkPathExtension(req.getExtension(), getScriptFilename(req)))
 	{
+
 		res.statusCode = 403;
 		res.statusMessage = "Forbidden";
 		res.setTextBody("<h1>403 Forbidden</h1>");
 		res.addHeader("Content-Length", intToString(res.body.size()));
 		res.addHeader("Content-Type", "text/html");
+		if (req.is_keep_alive) {
+			res.addHeader("Connection", "keep-alive");
+		} else {
+			res.addHeader("Connection", "close");
+		}
 		return 1; // Extension not allowed
 	}
 	else if (!_checkInterpreterScrpt(req))
@@ -216,6 +248,11 @@ int Cgi::_checker(RoutingResult &serv, HttpRequest &req, HttpResponse &res)
 		res.setTextBody("<h1>502 Bad Gateway</h1>");
 		res.addHeader("Content-Length", intToString(res.body.size()));
 		res.addHeader("Content-Type", "text/html");
+		if (req.is_keep_alive) {
+			res.addHeader("Connection", "keep-alive");
+		} else {
+			res.addHeader("Connection", "close");
+		}
 		return 1; // Interpreter not found or not executable
 	}
 	return 0;
@@ -226,7 +263,6 @@ int		Cgi::_checkExtention(const std::string &path, const std::vector<std::string
 
 	for (size_t i = 0; i < ext.size(); ++i)
 	{
-		std::cout << "path: " << path << " ext: " << ext[i] << std::endl;
 		if (path.find(ext[i]) != std::string::npos)
 		{
 			int pos = path.find(ext[i]);
