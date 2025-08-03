@@ -2,10 +2,29 @@
 #include "sockets.hpp"
 #include "utils.hpp"
 
-// bool get_error_page(HttpResponse &response, int error_code, const std::string &error_message, const RoutingResult &routing_result) {
-//     std::string error_page_path = routing_result.
-// }
-
+bool get_error_page(HttpResponse &response, int error_code, HttpRequest &request, std::string error_message) {
+    std::map<int, std::string> error_pages = request.error_pages;
+    if (error_pages.count(error_code)) {
+        std::string error_page_path = error_pages[error_code];
+        std::ifstream error_page_file(error_page_path.c_str());
+        if (error_page_file.is_open()) {
+            error_page_file.seekg(0, std::ios::end);
+            response.body.resize(error_page_file.tellg());
+            error_page_file.seekg(0, std::ios::beg);
+            error_page_file.read(response.body.data(), response.body.size());
+            error_page_file.close();
+            response.statusCode = error_code;
+            response.statusMessage = error_message;
+            response.addHeader("Content-Type", "text/html");
+            response.addHeader("Content-Length", intToString(response.body.size()));
+            return true;
+        }
+        else 
+            std::cerr << "Error: Could not open error page file: " << error_page_path << std::endl;
+    }
+    std::cerr << "Error: No error page defined for error code: " << error_code << std::endl;
+    return false;
+}
 
 std::string HttpResponse::toString() const {
     std::string responseString = httpVersion + " " + intToString(statusCode) + " " + statusMessage + "\r\n";
@@ -320,11 +339,14 @@ bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
     std::string hostname;
     if (request.headers.count("Host") == 0) {
         print_log( "Host header not found in request, closing connection." , DiSPLAY_LOG);
-        response.statusCode = 400; // Bad Request
-        response.statusMessage = "Bad Request";
-        response.addHeader("Content-Type", "text/html");
-        response.setTextBody("<h1>400 Bad Request</h1>");
-        response.addHeader("Content-Length", intToString(response.body.size()));
+        if (!get_error_page(response, 400, request, "Bad Request")) {
+            response.statusCode = 400; // Bad Request
+            response.statusMessage = "Bad Request";
+            response.addHeader("Content-Type", "text/html");
+            response.setTextBody("<h1>400 Bad Request</h1>");
+            response.addHeader("Connection", "close");
+            response.addHeader("Content-Length", intToString(response.body.size()));
+        }
         write(client_fd, response.toString().c_str(), response.toString().size());
         write(client_fd, response.body.data(), response.body.size());
         return false;
@@ -356,7 +378,7 @@ bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
         }
     }
     else if (error == SERVER_NOT_FOUND || error == LOCATION_NOT_FOUND || error == FILE_NOT_FOUND) {
-        print_log( "Server not found for host: " + hostname + ":" + intToString(port) , DiSPLAY_LOG);
+        print_log( "not found for host: " + hostname + ":" + intToString(port) , DiSPLAY_LOG);
         response.statusCode = 404; // Not Found
         response.statusMessage = "Not Found";
         response.addHeader("Content-Type", "text/html");
@@ -377,15 +399,17 @@ bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
         return false; // Method not allowed, close connection
     } else if (error == ACCESS_DENIED) {
         print_log( "Access denied for path: " + request.path_without_query , DiSPLAY_LOG);
-        response.statusCode = 403; // Forbidden
-        response.statusMessage = "Forbidden";
-        response.addHeader("Content-Type", "text/html");
-        response.setTextBody("<h1>403 Forbidden</h1>");
-        response.addHeader("Content-Length", intToString(response.body.size()));
-        if (request.is_keep_alive)
-            response.addHeader("Connection", "keep-alive");
-        else
-            response.addHeader("Connection", "close");
+        if (!get_error_page(response, 403, request, "Forbidden")) {
+            response.statusCode = 403; // Forbidden
+            response.statusMessage = "Forbidden";
+            response.addHeader("Content-Type", "text/html");
+            response.setTextBody("<h1>403 Forbidden</h1>");
+            response.addHeader("Content-Length", intToString(response.body.size()));
+            if (request.is_keep_alive)
+                response.addHeader("Connection", "keep-alive");
+            else
+                response.addHeader("Connection", "close");
+        }
     }
     print_log( "Response prepared with status code: " + intToString(response.statusCode) + " and message: " + response.statusMessage , DiSPLAY_LOG);
 

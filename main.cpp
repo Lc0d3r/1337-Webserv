@@ -83,6 +83,7 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                 }
                 else if (connections[pollfds[i].fd].type == CONNECTED) {
                     client_fd = pollfds[i].fd;
+                    connections[client_fd].request.error_pages = config.getErrorPages(404, connections[pollfds[i].fd].hostToConnect, connections[pollfds[i].fd].portToConnect);
                     print_log( "Reading request comming to server: " + connections[client_fd].server_ip + ":" + connections[client_fd].server_port , DiSPLAY_LOG);
 
                     // read data from the client
