@@ -1,9 +1,10 @@
 #include "HttpResponse.hpp"
 #include "sockets.hpp"
-#include "../ziel-hac/cgi.hpp"
-#include "../ziel-hac/post.hpp"
-#include <dirent.h>
-#include <fstream>
+#include "utils.hpp"
+
+// bool get_error_page(HttpResponse &response, int error_code, const std::string &error_message, const RoutingResult &routing_result) {
+//     std::string error_page_path = routing_result.
+// }
 
 
 std::string HttpResponse::toString() const {
@@ -287,17 +288,38 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
     }
 }
 
+bool handleDeleteRequest(HttpResponse& response, const HttpRequest& request, RoutingResult& routing_result) {
+    std::string file_path = routing_result.file_path;
+    if (remove(file_path.c_str()) == 0) {
+        response.statusCode = 200; // OK
+        response.statusMessage = "OK";
+        response.setTextBody("<h1>File deleted successfully</h1>");
+        response.addHeader("Content-Type", "text/html");
+        response.addHeader("Content-Length", intToString(response.body.size()));
+    } else {
+        response.statusCode = 500; // Internal Server Error
+        response.statusMessage = "Internal Server Error";
+        response.setTextBody("<h1>Failed to delete file</h1>");
+        response.addHeader("Content-Length", intToString(response.body.size()));
+        response.addHeader("Content-Type", "text/html");
+        return false;
+    }
+    if (request.is_keep_alive)
+        response.addHeader("Connection", "keep-alive");
+    else
+        response.addHeader("Connection", "close");
+    return true;
+}
+
 bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInfo &connections)
 {
-    log_time();
-    std::cout << "Preparing response for request: " << request.method << " " << request.path_without_query << std::endl;
+    print_log( "Preparing response for request: " + request.method + " " + request.path_without_query );
     HttpResponse response(200, "OK");
     errorType error = NO_ERROR;
     int port;
     std::string hostname;
     if (request.headers.count("Host") == 0) {
-        log_time();
-        std::cerr << "Host header not found in request, closing connection." << std::endl;
+        print_log( "Host header not found in request, closing connection." );
         response.statusCode = 400; // Bad Request
         response.statusMessage = "Bad Request";
         response.addHeader("Content-Type", "text/html");
@@ -317,7 +339,7 @@ bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
             Cgi handlecgi(routing_result, request, response);
             if (handlecgi.getvalidChecker() == 1)
             if (!handlecgi._executeScript(routing_result, request, response))
-            std::cout << "Failed to execute CGI script." << std::endl;
+            print_log( "Failed to execute CGI script." );
         }
         else if (request.method == "GET") {
             handleGETRequest(response, request, config, connections);
@@ -326,15 +348,51 @@ bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
                 posthandler(&request, &routing_result, response);
             }
         }
+        else if (request.method == "DELETE") {
+            if (!handleDeleteRequest(response, request, routing_result)) {
+                print_log( "Failed to handle DELETE request." );
+                return false;
+            }
+        }
     }
-    log_time();
-    std::cout << "Response prepared with status code: " << response.statusCode << " and message: " << response.statusMessage << std::endl;
+    else if (error == SERVER_NOT_FOUND || error == LOCATION_NOT_FOUND || error == FILE_NOT_FOUND) {
+        print_log( "Server not found for host: " + hostname + ":" + intToString(port) );
+        response.statusCode = 404; // Not Found
+        response.statusMessage = "Not Found";
+        response.addHeader("Content-Type", "text/html");
+        response.setTextBody("<h1>404 Not Found</h1>");
+        response.addHeader("Content-Length", intToString(response.body.size()));
+        if (request.is_keep_alive)
+            response.addHeader("Connection", "keep-alive");
+        else
+            response.addHeader("Connection", "close");
+    } else if (error == METHOD_NOT_ALLOWED) {
+        print_log( "Method not allowed for path: " + request.path_without_query );
+        response.statusCode = 405; // Method Not Allowed
+        response.statusMessage = "Method Not Allowed";
+        response.addHeader("Content-Type", "text/html");
+        response.setTextBody("<h1>405 Method Not Allowed</h1>");
+        response.addHeader("Content-Length", intToString(response.body.size()));
+        response.addHeader("connection", "close");
+        return false; // Method not allowed, close connection
+    } else if (error == ACCESS_DENIED) {
+        print_log( "Access denied for path: " + request.path_without_query );
+        response.statusCode = 403; // Forbidden
+        response.statusMessage = "Forbidden";
+        response.addHeader("Content-Type", "text/html");
+        response.setTextBody("<h1>403 Forbidden</h1>");
+        response.addHeader("Content-Length", intToString(response.body.size()));
+        if (request.is_keep_alive)
+            response.addHeader("Connection", "keep-alive");
+        else
+            response.addHeader("Connection", "close");
+    }
+    print_log( "Response prepared with status code: " + intToString(response.statusCode) + " and message: " + response.statusMessage );
 
     // sending the response headers
     write(client_fd , response.toString().c_str() , strlen(response.toString().c_str()));
     // sending the response body
     write(client_fd, response.body.data(), response.body.size());
-    log_time();
-    std::cout << "Response sent successfully." << std::endl;
+    print_log( "Response sent successfully." );
     return true;
 }
