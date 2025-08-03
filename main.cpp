@@ -7,8 +7,8 @@
 #include "ysahraou/HttpResponse.hpp"
 #include <signal.h>
 #include "ysahraou/utils.hpp"
-#include "ziel-hac/cookies.hpp"
 
+std::map<std::string, std::string> cookies_map;
 
 void loop(std::map <int, ConnectionInfo> &connections, Config &config)
 {

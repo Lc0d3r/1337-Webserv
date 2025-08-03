@@ -14,6 +14,7 @@
 #include <netdb.h>
 #include "../ziel-hac/cgi_utils.hpp"
 
+extern std::map<std::string, std::string> cookies_map;
 
 // e.g, GET /index.html?key=value&key=value HTTP/1.1
 
