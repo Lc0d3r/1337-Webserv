@@ -60,9 +60,9 @@ const ServerConfig& matchServer(const Config& config, const std::string& host, i
                 }
 
                 // Now check server_name match
-                for (size_t k = 0; k < server.server_name.size(); ++k)
+                for (size_t k = 0; k < server.listens.size(); ++k)
                 {
-                    if (server.server_name[k] == host)
+                    if (server.listens[k].listen_host == host)
                     {
                         error = NO_ERROR;
                         return server; // Exact match

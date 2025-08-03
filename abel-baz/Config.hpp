@@ -48,6 +48,7 @@ struct Config
 
     int getKeepAliveTimeout(std::string host, int port) const;
     size_t getMaxBodySize(std::string host, int port) const;
+    std::string getErrorPage(int code, std::string host, int port) const;
 };
 
 #endif // CONFIG_HPP

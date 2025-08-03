@@ -4,6 +4,22 @@
 
 HttpRequest::HttpRequest() : in_progress(false), done(false), byte_readed(0), content_length(0) {}
 
+void setTheme(HttpRequest &request)
+{
+    std::string theme = request.getCookie();
+    size_t pos = theme.find("theme=");
+    if (pos != std::string::npos) 
+    {
+        size_t endPos = theme.find(';', pos);
+        if (endPos != std::string::npos)
+            cookies_map[request.getSessionId()] = theme.substr(pos + 6, endPos - pos - 6);
+        else
+            cookies_map[request.getSessionId()] = theme.substr(pos + 6, theme.size() - pos - 6);
+    }
+    else 
+        cookies_map[request.getSessionId()] = "default"; // default theme
+}
+
 std::string HttpRequest::getSessionId() const
 {
     if (headers.count("Cookie"))
@@ -171,6 +187,17 @@ int parse_req(std::string request_data, int socket_fd, HttpRequest &request)
         }
     }
     request.headers = headers;
+    if (headers.count("Cookie") > 0)
+    {
+        setTheme(request);
+        if (cookies_map.count("1") > 0)
+            std::cout << "Theme set to: " << cookies_map["1"] << std::endl;
+        if (cookies_map.count("2") > 0)
+            std::cout << "Theme set to: " << cookies_map["2"] << std::endl;
+        if (cookies_map.count("3") > 0)
+            std::cout << "Theme set to: " << cookies_map["3"] << std::endl;
+    }
+    std::cout << "accounts: " << cookies_map.size() << std::endl;
 
     // check if the request is a keep-alive request
     if (headers.count("Connection")) {
