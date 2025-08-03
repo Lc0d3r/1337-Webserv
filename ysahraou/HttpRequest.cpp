@@ -119,7 +119,7 @@ int parse_req(std::string request_data, int socket_fd, HttpRequest &request)
     sss >> method >> path >> http_version;
     if (method != "GET" && method != "DELETE" && method != "POST") {
         //hand the  response "bad request 400"
-        print_log( "Method not allowed: " + method + " sendin 400 Bad Request response." );
+        print_log( "Method not allowed: " + method + " sendin 400 Bad Request response." , DiSPLAY_LOG);
         const char* response_400 =
             "HTTP/1.1 400 Bad Request\r\n"
             "Content-Type: text/html\r\n"
@@ -134,7 +134,7 @@ int parse_req(std::string request_data, int socket_fd, HttpRequest &request)
     }
     if (http_version != "HTTP/1.1") {
         // send 505 response
-        print_log( "HTTP version not supported: " + http_version + " sending 505 HTTP Version Not Supported response.");
+        print_log( "HTTP version not supported: " + http_version + " sending 505 HTTP Version Not Supported response.", DiSPLAY_LOG);
         const char* response_505 =
             "HTTP/1.1 505 HTTP Version Not Supported\r\n"
             "Content-Type: text/html\r\n"
@@ -213,7 +213,7 @@ bool readChunkedBody(HttpRequest &request, std::string &str_body, int new_socket
 
 void readBody(HttpRequest &request, std::string &str_body, int new_socket) {
     int content_length = 0;
-    print_log( "Reading the body..." );
+    print_log( "Reading the body..." , DiSPLAY_LOG);
     if (request.headers.count("Content-Length"))
     {
         content_length = std::atoi(request.headers["Content-Length"].c_str());
@@ -232,11 +232,11 @@ void readBody(HttpRequest &request, std::string &str_body, int new_socket) {
         request.body += str_body;
         if (request.byte_readed < content_length) {
             request.in_progress = true;
-            print_log( "Request is in progress, bytes readed: " + intToString(request.byte_readed) + ", content length: " + intToString(content_length ));
+            print_log( "Request is in progress, bytes readed: " + intToString(request.byte_readed) + ", content length: " + intToString(content_length ), DiSPLAY_LOG);
         } else {
             request.done = true;
             request.in_progress = false;
-            print_log( "Request done, bytes readed: " + intToString(request.byte_readed) + ", content length: " + intToString(content_length) );
+            print_log( "Request done, bytes readed: " + intToString(request.byte_readed) + ", content length: " + intToString(content_length) , DiSPLAY_LOG);
         }
     }
     else 

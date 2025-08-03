@@ -100,7 +100,7 @@ std::vector<int> initListeningSockets(const Config &config, std::map<int, Connec
                     exit(EXIT_FAILURE);
                     return std::vector<int>();
                 }
-                print_log("Listening on " + config.servers[i].listens[j].listen_host + ":" + intToString(config.servers[i].listens[j].listen_port));
+                print_log("Listening on " + config.servers[i].listens[j].listen_host + ":" + intToString(config.servers[i].listens[j].listen_port), DiSPLAY_LOG);
                 listening_fds.push_back(socket_fd);
             }
         }

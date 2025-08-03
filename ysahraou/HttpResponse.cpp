@@ -313,13 +313,13 @@ bool handleDeleteRequest(HttpResponse& response, const HttpRequest& request, Rou
 
 bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInfo &connections)
 {
-    print_log( "Preparing response for request: " + request.method + " " + request.path_without_query );
+    print_log( "Preparing response for request: " + request.method + " " + request.path_without_query , DiSPLAY_LOG);
     HttpResponse response(200, "OK");
     errorType error = NO_ERROR;
     int port;
     std::string hostname;
     if (request.headers.count("Host") == 0) {
-        print_log( "Host header not found in request, closing connection." );
+        print_log( "Host header not found in request, closing connection." , DiSPLAY_LOG);
         response.statusCode = 400; // Bad Request
         response.statusMessage = "Bad Request";
         response.addHeader("Content-Type", "text/html");
@@ -339,7 +339,7 @@ bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
             Cgi handlecgi(routing_result, request, response);
             if (handlecgi.getvalidChecker() == 1)
             if (!handlecgi._executeScript(routing_result, request, response))
-            print_log( "Failed to execute CGI script." );
+            print_log( "Failed to execute CGI script." , DiSPLAY_LOG);
         }
         else if (request.method == "GET") {
             handleGETRequest(response, request, config, connections);
@@ -350,13 +350,13 @@ bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
         }
         else if (request.method == "DELETE") {
             if (!handleDeleteRequest(response, request, routing_result)) {
-                print_log( "Failed to handle DELETE request." );
+                print_log( "Failed to handle DELETE request." , DiSPLAY_LOG);
                 return false;
             }
         }
     }
     else if (error == SERVER_NOT_FOUND || error == LOCATION_NOT_FOUND || error == FILE_NOT_FOUND) {
-        print_log( "Server not found for host: " + hostname + ":" + intToString(port) );
+        print_log( "Server not found for host: " + hostname + ":" + intToString(port) , DiSPLAY_LOG);
         response.statusCode = 404; // Not Found
         response.statusMessage = "Not Found";
         response.addHeader("Content-Type", "text/html");
@@ -367,7 +367,7 @@ bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
         else
             response.addHeader("Connection", "close");
     } else if (error == METHOD_NOT_ALLOWED) {
-        print_log( "Method not allowed for path: " + request.path_without_query );
+        print_log( "Method not allowed for path: " + request.path_without_query , DiSPLAY_LOG);
         response.statusCode = 405; // Method Not Allowed
         response.statusMessage = "Method Not Allowed";
         response.addHeader("Content-Type", "text/html");
@@ -376,7 +376,7 @@ bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
         response.addHeader("connection", "close");
         return false; // Method not allowed, close connection
     } else if (error == ACCESS_DENIED) {
-        print_log( "Access denied for path: " + request.path_without_query );
+        print_log( "Access denied for path: " + request.path_without_query , DiSPLAY_LOG);
         response.statusCode = 403; // Forbidden
         response.statusMessage = "Forbidden";
         response.addHeader("Content-Type", "text/html");
@@ -387,12 +387,12 @@ bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
         else
             response.addHeader("Connection", "close");
     }
-    print_log( "Response prepared with status code: " + intToString(response.statusCode) + " and message: " + response.statusMessage );
+    print_log( "Response prepared with status code: " + intToString(response.statusCode) + " and message: " + response.statusMessage , DiSPLAY_LOG);
 
     // sending the response headers
     write(client_fd , response.toString().c_str() , strlen(response.toString().c_str()));
     // sending the response body
     write(client_fd, response.body.data(), response.body.size());
-    print_log( "Response sent successfully." );
+    print_log( "Response sent successfully." , DiSPLAY_LOG);
     return true;
 }
