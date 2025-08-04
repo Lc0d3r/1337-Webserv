@@ -13,8 +13,9 @@ std::string decodePath(std::string path)
     std::string result_path;
     int high;
     int low;
-
-    for (size_t i = 0; i < path.length(); i++)
+//  /AllFileFormat/test%20%20.png
+    int i = 0;
+    while (i < (int)path.size())
     {
         if (path[i] == '%') {
             if (path[i+1] and path[i+2])
@@ -28,14 +29,17 @@ std::string decodePath(std::string path)
                     std::cerr << "Invalid hex encoding in path: " << path << std::endl;
                     return ""; // Return empty string on error
                 }
-                i += 2; // Skip the next two characters
+                i += 3; // Skip the next two characters
             }
             else {
                 std::cerr << "Incomplete hex encoding in path: " << path << std::endl;
                 return ""; // Return empty string on error
             }
         }
-        result_path += path[i]; // Keep other characters as is
+        else {
+            result_path += path[i]; // Keep other characters as is
+            i++;
+        }
     }
     return result_path;
 }
