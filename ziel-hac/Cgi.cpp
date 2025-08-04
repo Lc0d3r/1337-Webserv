@@ -231,6 +231,7 @@ void Cgi::setEnv(RoutingResult &serv, HttpRequest &req)
 	_tmpEnv["CONTENT_LENGTH"] = req.getContentLength();
 	_tmpEnv["HTTP_COOKIE"] = req.getCookie();
 	_tmpEnv["SCRIPT_FILENAME"] = getScriptFilename(req);
+	_tmpEnv["ACCOUNTS"] = intToString(cookies_map.size());
 }
 //DO:1.checks if the extension is in the conf file, 2.checks if the extension in the path is valid 3.checks if the interpreter is valid
 //RETURN: 0 if all above is true, 1 if any of the above is false
