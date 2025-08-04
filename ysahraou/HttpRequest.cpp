@@ -327,8 +327,11 @@ bool readBody(HttpRequest &request, std::string &str_body, int new_socket) {
         }
         return true; // chunked body read successfully
     }
-    else
-        return false;
+    else {
+        if (request.method == "POST")
+            return false; // no body to read
+        return true; // no body to read, but request is valid
+    }
 }
 
 void removeQueryString(HttpRequest &request) {
