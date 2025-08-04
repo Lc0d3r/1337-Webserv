@@ -83,15 +83,17 @@ int posthandler(HttpRequest *req, RoutingResult *ser, HttpResponse &res)
 		{
 			if(!parsechunked(*req, *ser))
             {
-				res.setTextBody("<h1>500 Internal Server Error</h1>");
-				res.statusCode = 500;
-				res.statusMessage = "Internal Server Error";
-				res.addHeader("Content-Length", intToString(res.body.size()));
-				res.addHeader("Content-Type", "text/html");
-				if (req->is_keep_alive) {
-					res.addHeader("Connection", "keep-alive");
-				} else {
-					res.addHeader("Connection", "close");
+				if (!get_error_page(res, 500, *req, "Internal Server Error")) {
+					res.setTextBody("<h1>500 Internal Server Error</h1>");
+					res.statusCode = 500;
+					res.statusMessage = "Internal Server Error";
+					res.addHeader("Content-Length", intToString(res.body.size()));
+					res.addHeader("Content-Type", "text/html");
+					if (req->is_keep_alive) {
+						res.addHeader("Connection", "keep-alive");
+					} else {
+						res.addHeader("Connection", "close");
+					}
 				}
 				return 0;
 			}
@@ -116,15 +118,17 @@ int posthandler(HttpRequest *req, RoutingResult *ser, HttpResponse &res)
 		{
             if (!handle_multiple_form_data(*req, *ser))
 			{
-				res.setTextBody("<h1>500 Internal Server Error</h1>");
-				res.statusCode = 500;
-				res.statusMessage = "Internal Server Error";
-				res.addHeader("Content-Length", intToString(res.body.size()));
-				res.addHeader("Content-Type", "text/html");
-				if (req->is_keep_alive) {
-					res.addHeader("Connection", "keep-alive");
-				} else {
-					res.addHeader("Connection", "close");
+				if (!get_error_page(res, 500, *req, "Internal Server Error")) {
+					res.setTextBody("<h1>500 Internal Server Error</h1>");
+					res.statusCode = 500;
+					res.statusMessage = "Internal Server Error";
+					res.addHeader("Content-Length", intToString(res.body.size()));
+					res.addHeader("Content-Type", "text/html");
+					if (req->is_keep_alive) {
+						res.addHeader("Connection", "keep-alive");
+					} else {
+						res.addHeader("Connection", "close");
+					}
 				}
 				return 0;
 			}

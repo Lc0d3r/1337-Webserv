@@ -83,7 +83,7 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                 }
                 else if (connections[pollfds[i].fd].type == CONNECTED) {
                     client_fd = pollfds[i].fd;
-                    connections[client_fd].request.error_pages = config.getErrorPages(404, connections[pollfds[i].fd].hostToConnect, connections[pollfds[i].fd].portToConnect);
+                    connections[client_fd].request.error_pages = config.getErrorPages(connections[pollfds[i].fd].hostToConnect, connections[pollfds[i].fd].portToConnect);
                     print_log( "Reading request comming to server: " + connections[client_fd].server_ip + ":" + connections[client_fd].server_port , DiSPLAY_LOG);
 
                     // read data from the client
@@ -117,13 +117,15 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                     readBody(connections[pollfds[i].fd].request, str_body, client_fd);
                     if (!connections[pollfds[i].fd].request.body.empty() && connections[pollfds[i].fd].request.body.size() >= config.getMaxBodySize("", connections[pollfds[i].fd].portToConnect)) {
                         HttpResponse response;
-                        response.statusCode = 413; // Payload Too Large
-                        response.httpVersion = "HTTP/1.1";
-                        response.statusMessage = "Payload Too Large";
-                        response.addHeader("Content-Type", "text/html");
-                        response.addHeader("Connection", "close");
-                        response.addHeader("Content-Length", "57");
-                        response.setTextBody("<html><body><h1>413 Payload Too Large</h1></body></html>");
+                        if (!get_error_page(response, 413, connections[pollfds[i].fd].request, "Payload Too Large")) {
+                            response.statusCode = 413; // Payload Too Large
+                            response.httpVersion = "HTTP/1.1";
+                            response.statusMessage = "Payload Too Large";
+                            response.addHeader("Content-Type", "text/html");
+                            response.addHeader("Connection", "close");
+                            response.addHeader("Content-Length", "57");
+                            response.setTextBody("<html><body><h1>413 Payload Too Large</h1></body></html>");
+                        }
                         print_log( "Request body size exceeds limit, sending 413 response." , DiSPLAY_LOG);
                         write(client_fd, response.toString().c_str(), response.toString().size());
                         write (client_fd, response.body.data(), response.body.size());

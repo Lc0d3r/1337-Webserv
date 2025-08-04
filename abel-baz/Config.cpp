@@ -28,15 +28,12 @@ size_t Config::getMaxBodySize(std::string host, int port) const {
     return 1000000; // default max body size is 1 MB
 }
 
-std::map<int, std::string> Config::getErrorPages(int code, std::string host, int port) const {
+std::map<int, std::string> Config::getErrorPages(std::string host, int port) const {
     errorType error = NO_ERROR;
     ServerConfig server = matchServer(*this, host, port, error);
     if (error != NO_ERROR) {
         std::cerr << "Error occurred: " << error << std::endl;
         return std::map<int, std::string>(); // Return empty map on error
     }
-    if (server.error_pages.count(code)) {
-        return server.error_pages;
-    }
-    return std::map<int, std::string>(); // Return empty map if no error page is found
+    return server.error_pages;
 }

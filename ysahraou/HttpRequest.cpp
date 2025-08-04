@@ -136,30 +136,35 @@ int parse_req(std::string request_data, int socket_fd, HttpRequest &request)
     if (method != "GET" && method != "DELETE" && method != "POST") {
         //hand the  response "bad request 400"
         print_log( "Method not allowed: " + method + " sendin 400 Bad Request response." , DiSPLAY_LOG);
-        const char* response_400 =
-            "HTTP/1.1 400 Bad Request\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 22\r\n"
-            "Connection: close\r\n"
-            "\r\n"
-            "<h1>Bad Request</h1>";
-        write(socket_fd , response_400 , strlen(response_400));
-        std::cout << "method ["<< method << "] is not allowed" << std::endl;
-        std::cout << "400 ==> Bad Request response has send" << std::endl;
+        HttpResponse response;
+        if (!get_error_page(response, 400, request, "Bad Request")) {
+            response.httpVersion = "HTTP/1.1";
+            response.statusCode = 400;
+            response.statusMessage = "Bad Request";
+            response.addHeader("Content-Type", "text/html");
+            response.setTextBody("<h1>400 Bad Request</h1>");
+            response.addHeader("Content-Length", intToString(response.body.size()));
+        }
+        write(socket_fd, response.toString().c_str(), response.toString().size());
+        write(socket_fd, response.body.data(), response.body.size());
+        print_log( "Response sent for 400 bad request." , DiSPLAY_LOG);
         return 1;
     }
     if (http_version != "HTTP/1.1") {
         // send 505 response
         print_log( "HTTP version not supported: " + http_version + " sending 505 HTTP Version Not Supported response.", DiSPLAY_LOG);
-        const char* response_505 =
-            "HTTP/1.1 505 HTTP Version Not Supported\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 39\r\n"
-            "Connection: close\r\n"
-            "\r\n"
-            "<h1>HTTP Version Not Supported</h1>";
-        write(socket_fd , response_505 , strlen(response_505));
-        std::cout << "505 HTTP Version Not Supported res has send" << std::endl;
+        HttpResponse response;
+        if (!get_error_page(response, 505, request, "HTTP Version Not Supported")) {
+            response.httpVersion = "HTTP/1.1";
+            response.statusCode = 505;
+            response.statusMessage = "HTTP Version Not Supported";
+            response.addHeader("Content-Type", "text/html");
+            response.setTextBody("<h1>505 HTTP Version Not Supported</h1>");
+            response.addHeader("Content-Length", intToString(response.body.size()));
+        }
+        write(socket_fd, response.toString().c_str(), response.toString().size());
+        write(socket_fd, response.body.data(), response.body.size());
+        print_log( "Response sent for 505 HTTP Version Not Supported." , DiSPLAY_LOG);
         return 1;
     }
     request.method = method;

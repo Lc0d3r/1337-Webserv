@@ -2,7 +2,7 @@
 #include "sockets.hpp"
 #include "utils.hpp"
 
-bool get_error_page(HttpResponse &response, int error_code, HttpRequest &request, std::string error_message) {
+bool get_error_page(HttpResponse &response, int error_code, const HttpRequest &request, std::string error_message) {
     std::map<int, std::string> error_pages = request.error_pages;
     if (error_pages.count(error_code)) {
         std::string error_page_path = error_pages[error_code];
@@ -17,6 +17,12 @@ bool get_error_page(HttpResponse &response, int error_code, HttpRequest &request
             response.statusMessage = error_message;
             response.addHeader("Content-Type", "text/html");
             response.addHeader("Content-Length", intToString(response.body.size()));
+            if (request.is_keep_alive && error_code != 400 && error_code != 505) {
+                response.addHeader("Connection", "keep-alive");
+            } else {
+                response.addHeader("Connection", "close");
+            }
+            print_log("Error page loaded for error code: " + intToString(error_code) + " from path: " + error_page_path, DiSPLAY_LOG);
             return true;
         }
         else 
@@ -126,7 +132,6 @@ std::streamsize Check_file_size(const std::string& file_path) {
         std::cerr << "File is empty or error reading size: " << file_path << std::endl;
         return 0;
     }
-    std::cout << "File size: " << size << " bytes" << std::endl;
     return size;
 }
 
@@ -145,13 +150,12 @@ bool supported_file_format(const std::string& file_path) {
 
 bool read_file(const std::string& file_path, HttpResponse& response, ConnectionInfo& connections) {
     response.addHeader("Content-Length", streamsizeToString(Check_file_size(file_path)));
-    std::cout << "content Length: [" << response.headers["Content-Length"] << "]" << std::endl;
     std::ifstream file(file_path.c_str(), std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "Failed to open file: " << file_path << std::endl;
         return false;
     }
-    std::cout << "Reading file: " << file_path << std::endl;
+    print_log("Reading file: " + file_path, DiSPLAY_LOG);
 
     response.body.resize(MAX_TO_SEND); // Allocate space
     file.read(response.body.data(), MAX_TO_SEND);
@@ -169,15 +173,14 @@ bool read_file(const std::string& file_path, HttpResponse& response, ConnectionI
     // }
     std::streamsize bytes_read = file.gcount();
     if (bytes_read > 0 && !file.eof() && connections.pos < file.tellg()) {
-        std::cout << "Set info to resume sending: " << file_path << std::endl;
+        print_log("Set info to resume sending: " + file_path, DiSPLAY_LOG);
         connections.pos += bytes_read;
         connections.file_path = file_path;
         connections.is_old = true;
     }
-        
-    std::cout << "file readed successfully: " << file_path << " (" << bytes_read << " bytes)\n";
+
     if (!supported_file_format(file_path)) {
-        std::cout << "Adding Content-Disposition header for file download: " << file_path << std::endl;
+        print_log("Unsupported file format: " + file_path + " adding Content-Disposition header", DiSPLAY_LOG);
         response.addHeader("Content-disposition", "attachment; filename=\"" + file_path.substr(file_path.find_last_of('/') + 1) + "\"");
     }
     file.close();
@@ -185,7 +188,7 @@ bool read_file(const std::string& file_path, HttpResponse& response, ConnectionI
 }
 
 bool resumeSending(ConnectionInfo &connections, std::vector<char> &buffer, int client_fd) {
-    std::cout << "Resuming file sending: " << connections.file_path << std::endl;
+    print_log("Resuming file sending: " + connections.file_path, DiSPLAY_LOG);
     if (connections.pos < Check_file_size(connections.file_path)) {
         std::ifstream file(connections.file_path.c_str(), std::ios::binary);
         if (!file.is_open()) {
@@ -203,11 +206,11 @@ bool resumeSending(ConnectionInfo &connections, std::vector<char> &buffer, int c
             if (bytes_written > 0)
                 connections.pos += bytes_written;
 
-            std::cout << "Sent " << bytes_read << " bytes, pos now: " << connections.pos << std::endl;
+            print_log("Sent " + intToString(bytes_written) + " bytes, pos now: " + intToString(connections.pos), DiSPLAY_LOG);
         }
 
         if (file.eof() || connections.pos >= Check_file_size(connections.file_path)) {
-            std::cout << "Finished sending the file." << std::endl;
+            print_log("Finished sending the file.", DiSPLAY_LOG);
             connections.is_old = false;
             connections.pos = 0;
             connections.file_path.clear();
@@ -236,11 +239,10 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
         return;
     }
     if (result.use_autoindex) {
-        std::cout << "Autoindex enabled for: " << result.file_path << std::endl;
+        print_log("Using autoindex for path: " + result.file_path, DiSPLAY_LOG);
         response.statusCode = 200; // OK
         response.statusMessage = "OK";
         std::string body;
-        std::cout << "result.file_path = " << result.file_path << std::endl;
         if (generateAutoIndex(result.file_path, request.path_without_query , body)) {
             response.setTextBody(body);
             response.addHeader("Content-Type", "text/html");
@@ -250,31 +252,34 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
             } else {
                 response.addHeader("Connection", "close");
             }
-            if (!request.getSessionId().empty())
-            {
+            if (!request.getSessionId().empty()) {
                 response.addHeader("set-Cookie", "session_id=" + request.getSessionId());
-                std::cout << "----------------------------------------Session ID get in response: " << request.getSessionId() << std::endl;
+                print_log("Session ID get in request: " + request.getSessionId(), DiSPLAY_LOG);
             }
-            else
-            {
+            else {
                 response.addHeader("set-Cookie", "session_id=" + response.setSessionId());
-                std::cout << "++++++++++++++++++++++++++++++++++++++++Session ID set in response: " << response.setSessionId() << std::endl;
+                print_log("Session ID set in response: " + response.setSessionId(), DiSPLAY_LOG);
             }
         } else {
-            response.statusCode = 500; // Internal Server Error
-            response.statusMessage = "Internal Server Error";
-            if (request.is_keep_alive) {
-                response.addHeader("Connection", "keep-alive");
-            } else {
-                response.addHeader("Connection", "close");
+            if (!get_error_page(response, 500, request, "Internal Server Error")) {
+                print_log("Failed to generate autoindex for: " + result.file_path, DiSPLAY_LOG);
+                response.statusCode = 500; // Internal Server Error
+                response.statusMessage = "Internal Server Error";
+                if (request.is_keep_alive) {
+                    response.addHeader("Connection", "keep-alive");
+                } else {
+                    response.addHeader("Connection", "close");
+                }
+                response.setTextBody("<h1>500 Internal Server Error</h1>");
+                response.addHeader("Content-Type", "text/html");
+                response.addHeader("Content-Length", intToString(response.body.size()));
             }
-            response.setTextBody("<h1>500 Internal Server Error</h1>");
         }
         return;
     } 
     // Not using autoindex an absolute path
-    else { 
-        std::cout << "Not using autoindex for: " << result.file_path << std::endl;
+    else {
+        print_log("Not using autoindex for: " + result.file_path, DiSPLAY_LOG);
         response.statusCode = 200; // OK
         response.statusMessage = "OK";
         std::string body;
@@ -293,11 +298,14 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
             }
         }
         else {
-                response.statusCode = 404; // Not Found
-                response.statusMessage = "Not Found";
-                response.addHeader("Content-Type", "text/html");
-                response.setTextBody("<h1>404 Not Found</h1>");
-                response.addHeader("Content-Length", intToString(response.body.size()));
+                if (!get_error_page(response, 404, request, "Not Found")) {
+                    print_log("File not found: " + result.file_path, DiSPLAY_LOG);
+                    response.statusCode = 404; // Not Found
+                    response.statusMessage = "Not Found";
+                    response.addHeader("Content-Type", "text/html");
+                    response.setTextBody("<h1>404 Not Found</h1>");
+                    response.addHeader("Content-Length", intToString(response.body.size()));
+                }
             }
         if (request.is_keep_alive) {
             response.addHeader("Connection", "keep-alive");
@@ -316,11 +324,14 @@ bool handleDeleteRequest(HttpResponse& response, const HttpRequest& request, Rou
         response.addHeader("Content-Type", "text/html");
         response.addHeader("Content-Length", intToString(response.body.size()));
     } else {
-        response.statusCode = 500; // Internal Server Error
-        response.statusMessage = "Internal Server Error";
-        response.setTextBody("<h1>Failed to delete file</h1>");
-        response.addHeader("Content-Length", intToString(response.body.size()));
-        response.addHeader("Content-Type", "text/html");
+        if (!get_error_page(response, 500, request, "Internal Server Error")) {
+            print_log("Failed to delete file: " + file_path, DiSPLAY_LOG);
+            response.statusCode = 500; // Internal Server Error
+            response.statusMessage = "Internal Server Error";
+            response.setTextBody("<h1>Failed to delete file</h1>");
+            response.addHeader("Content-Length", intToString(response.body.size()));
+            response.addHeader("Content-Type", "text/html");
+        }
         return false;
     }
     if (request.is_keep_alive)
@@ -379,23 +390,30 @@ bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
     }
     else if (error == SERVER_NOT_FOUND || error == LOCATION_NOT_FOUND || error == FILE_NOT_FOUND) {
         print_log( "not found for host: " + hostname + ":" + intToString(port) , DiSPLAY_LOG);
-        response.statusCode = 404; // Not Found
-        response.statusMessage = "Not Found";
-        response.addHeader("Content-Type", "text/html");
-        response.setTextBody("<h1>404 Not Found</h1>");
-        response.addHeader("Content-Length", intToString(response.body.size()));
-        if (request.is_keep_alive)
-            response.addHeader("Connection", "keep-alive");
-        else
-            response.addHeader("Connection", "close");
+        if (!get_error_page(response, 404, request, "Not Found")) {
+            response.statusCode = 404; // Not Found
+            response.statusMessage = "Not Found";
+            response.addHeader("Content-Type", "text/html");
+            response.setTextBody("<h1>404 Not Found</h1>");
+            response.addHeader("Content-Length", intToString(response.body.size()));
+            if (request.is_keep_alive)
+                response.addHeader("Connection", "keep-alive");
+            else
+                response.addHeader("Connection", "close");
+        }
     } else if (error == METHOD_NOT_ALLOWED) {
         print_log( "Method not allowed for path: " + request.path_without_query , DiSPLAY_LOG);
-        response.statusCode = 405; // Method Not Allowed
-        response.statusMessage = "Method Not Allowed";
-        response.addHeader("Content-Type", "text/html");
-        response.setTextBody("<h1>405 Method Not Allowed</h1>");
-        response.addHeader("Content-Length", intToString(response.body.size()));
-        response.addHeader("connection", "close");
+        if (!get_error_page(response, 405, request, "Method Not Allowed")) {
+            response.statusCode = 405; // Method Not Allowed
+            response.statusMessage = "Method Not Allowed";
+            response.addHeader("Content-Type", "text/html");
+            response.setTextBody("<h1>405 Method Not Allowed</h1>");
+            response.addHeader("Content-Length", intToString(response.body.size()));
+            if (request.is_keep_alive)
+                response.addHeader("Connection", "keep-alive");
+            else
+                response.addHeader("Connection", "close");
+        }
         return false; // Method not allowed, close connection
     } else if (error == ACCESS_DENIED) {
         print_log( "Access denied for path: " + request.path_without_query , DiSPLAY_LOG);
