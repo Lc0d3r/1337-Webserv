@@ -9,7 +9,7 @@ int Cgi::getvalidChecker() const
 
 Cgi::Cgi(RoutingResult &serv, HttpRequest &req, HttpResponse &res): valid_checker(1)
 {
-	
+	std::cout << "Cgi constructor called" << std::endl;	
 	if (!_checker(serv, req, res))
 	{
 		setEnv(serv, req);
