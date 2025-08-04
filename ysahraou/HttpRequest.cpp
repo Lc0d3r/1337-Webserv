@@ -46,7 +46,6 @@ std::string HttpRequest::getCookie() const
 std::string HttpRequest::getTransferEncoding() const
 {
     if (headers.count("Transfer-Encoding")) {
-        std::cout << "Transfer-Encodingnigger: " << headers.at("Transfer-Encoding") << std::endl;
         return headers.at("Transfer-Encoding");
     }
     return std::string();
@@ -67,7 +66,7 @@ std::string HttpRequest::getContentLength() const
     if (headers.count("Content-Length")) {
         return headers.at("Content-Length");
     }
-    return std::string();
+    return intToString(body.size());
 }
 
 std::string HttpRequest::getContentType() const
@@ -188,17 +187,7 @@ int parse_req(std::string request_data, int socket_fd, HttpRequest &request)
     }
     request.headers = headers;
     if (headers.count("Cookie") > 0)
-    {
         setTheme(request);
-        if (cookies_map.count("1") > 0)
-            std::cout << "Theme set to: " << cookies_map["1"] << std::endl;
-        if (cookies_map.count("2") > 0)
-            std::cout << "Theme set to: " << cookies_map["2"] << std::endl;
-        if (cookies_map.count("3") > 0)
-            std::cout << "Theme set to: " << cookies_map["3"] << std::endl;
-    }
-    std::cout << "accounts: " << cookies_map.size() << std::endl;
-
     // check if the request is a keep-alive request
     if (headers.count("Connection")) {
         if (headers["Connection"] == "keep-alive")
@@ -227,7 +216,7 @@ void readHeaders(std::string &request_data, int new_socket) {
 
 bool readChunkedBody(HttpRequest &request, std::string &str_body, int new_socket) {
     char buffer[2] = {0};
-    while (str_body.find("\r\n\r\n") == std::string::npos && request.method == "POST")
+    while (1 && request.method == "POST")
     {
         int bytes = read(new_socket, buffer, 1);
         if (bytes <= 0) {

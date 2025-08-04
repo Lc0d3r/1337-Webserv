@@ -356,7 +356,7 @@ bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
         }
     }
     else if (error == SERVER_NOT_FOUND || error == LOCATION_NOT_FOUND || error == FILE_NOT_FOUND) {
-        print_log( "Server not found for host: " + hostname + ":" + intToString(port) );
+        print_log( "not found for host: " + hostname + ":" + intToString(port) );
         response.statusCode = 404; // Not Found
         response.statusMessage = "Not Found";
         response.addHeader("Content-Type", "text/html");
