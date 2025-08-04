@@ -2,44 +2,39 @@
 #include "../ysahraou/HttpResponse.hpp"
 #include "cgi_utils.hpp"
 
-int parsechunked(HttpRequest &req, RoutingResult &ser)
+int parsechunked(HttpRequest &req, RoutingResult &ser) //<-- i need to parse chuncked body, for both cgi and non cgi, put to bodies one in the request to usit in cgi and the in the upload file in the conf.file 
 {
-	
+	std::vector<std::string> chunks = split(req.body, "\r\n");
+	size_t chunk_size = 0;
+	size_t i = 0;
+	std::string upload_file = ser.getUploadFile() + "/uploads.txt";
+	int fd = open(upload_file.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
+	if(fd < 0)
+		return 0;
+	req.body.clear();
+	std::istringstream iss(chunks[i]);
+	iss >> std::hex >> chunk_size;
+	if (iss.fail() || chunk_size == 0) {
+		std::cerr << "Failed to parse chunk size or size is zero." << std::endl;
+		close(fd);
+		return 0; // Handle error appropriately
+	}
+	while(chunk_size > 0)
+	{
+		i++;
+		write(fd, chunks[i].c_str(), chunk_size);
+		std::cout << "Chunk data: " << std::endl;
+		for (size_t j = 0; j < chunk_size; ++j) {
+			if (i + 1 < chunks.size()) {
+				std::cout << "Adding chunk data to request body: " << chunks[i][j] << std::endl;
+				req.body += chunks[i][j];
+			}
+		}
+		i++;
+		std::istringstream(chunks[i]) >> std::hex >> chunk_size;
+	}
+	return 1;
 }
-
-// int parsechunked(HttpRequest &req, RoutingResult &ser) //<-- i need to parse chuncked body, for both cgi and non cgi, put to bodies one in the request to usit in cgi and the in the upload file in the conf.file 
-// {
-// 	std::vector<std::string> chunks = split(req.body, "\r\n");
-// 	size_t chunk_size = 0;
-// 	size_t i = 0;
-// 	std::string upload_file = ser.getUploadFile() + "/uploads.txt";
-// 	int fd = open(upload_file.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
-// 	if(fd < 0)
-// 		return 0;
-// 	req.body.clear();
-// 	std::istringstream iss(chunks[i]);
-// 	iss >> std::hex >> chunk_size;
-// 	if (iss.fail() || chunk_size == 0) {
-// 		std::cerr << "Failed to parse chunk size or size is zero." << std::endl;
-// 		close(fd);
-// 		return 0; // Handle error appropriately
-// 	}
-// 	while(chunk_size > 0)
-// 	{
-// 		i++;
-// 		write(fd, chunks[i].c_str(), chunk_size);
-// 		std::cout << "Chunk data: " << std::endl;
-// 		for (size_t j = 0; j < chunk_size; ++j) {
-// 			if (i + 1 < chunks.size()) {
-// 				std::cout << "Adding chunk data to request body: " << chunks[i][j] << std::endl;
-// 				req.body += chunks[i][j];
-// 			}
-// 		}
-// 		i++;
-// 		std::istringstream(chunks[i]) >> std::hex >> chunk_size;
-// 	}
-// 	return 1;
-// }
 
 int handle_multiple_form_data(HttpRequest &req, RoutingResult &ser)
 {
@@ -88,7 +83,7 @@ int handle_multiple_form_data(HttpRequest &req, RoutingResult &ser)
 
 int posthandler(HttpRequest *req, RoutingResult *ser, HttpResponse &res)
 {
-	if (!req->getTransferEncoding().empty())
+	if (!req->getTransferEncoding().empty() && req->getTransferEncoding() == "chunked")
 		{
 			if(!parsechunked(*req, *ser))
             {
