@@ -1,4 +1,5 @@
 #include "Parser.hpp"
+#include <unistd.h>
 
 void Parser::parseListen(ServerConfig& server) {
     Token val = get();
@@ -122,7 +123,12 @@ void Parser::parseErrorPage(ServerConfig& server) {
     if (fileToken.text.empty())
         throw std::runtime_error("Error page path cannot be empty");
     if (fileToken.text[0] != '/')
-        throw std::runtime_error("Error page path must start with '/'");
+    {
+        char buffer[1024];
+        if (!getcwd(buffer, sizeof(buffer)))
+            throw std::runtime_error("Failed to get current working directory for error_page path");
+        fileToken.text = std::string(buffer) + "/error_pages/" + fileToken.text; // Make absolute path
+    }
 
     // Step 3: Store in map
     server.error_pages[code] = fileToken.text;
