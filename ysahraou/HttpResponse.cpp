@@ -402,6 +402,7 @@ bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
                 response.addHeader("Connection", "close");
         }
     } else if (error == METHOD_NOT_ALLOWED) {
+        std::cout << "niggerboy" << std::endl;
         print_log( "Method not allowed for path: " + request.path_without_query , DiSPLAY_LOG);
         if (!get_error_page(response, 405, request, "Method Not Allowed")) {
             response.statusCode = 405; // Method Not Allowed
@@ -414,7 +415,6 @@ bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
             else
                 response.addHeader("Connection", "close");
         }
-        return false; // Method not allowed, close connection
     } else if (error == ACCESS_DENIED) {
         print_log( "Access denied for path: " + request.path_without_query , DiSPLAY_LOG);
         if (!get_error_page(response, 403, request, "Forbidden")) {

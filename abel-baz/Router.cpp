@@ -1,6 +1,7 @@
 #include "Router.hpp"
 #include "sys/stat.h"
 #include "unistd.h"
+#include "../ysahraou/utils.hpp"
 
 std::string RoutingResult::getUploadFile() const
 {
@@ -178,21 +179,26 @@ bool fileExists(const std::string& path) {
     // 3. if the location is a directory and has autoindex enabled, we return the directory path and set use_autoindex to true
     // 4. if the location is a file, we check if it exists and is accessible, then return the file path
 RoutingResult routingResult(const Config& config, const std::string& host,
-                        int port, const std::string& uri, const std::string& method, errorType& error)
-{
-    const ServerConfig& server = matchServer(config, host, port, error);
-    const LocationConfig& location = matchLocation(server, uri, error);
-    if (error != NO_ERROR)
+    int port, const std::string& uri, const std::string& method, errorType& error)
     {
-        return RoutingResult(); // Return an empty RoutingResult on error
-    }
-
-    RoutingResult result;
-    result.server = &server;
-    result.location = &location;
-    result.server_count = config.servers.size();
+        const ServerConfig& server = matchServer(config, host, port, error);
+        const LocationConfig& location = matchLocation(server, uri, error);
+        if (error != NO_ERROR)
+        {
+            return RoutingResult(); // Return an empty RoutingResult on error
+        }
+        
+        RoutingResult result;
+        result.server = &server;
+        result.location = &location;
+        result.server_count = config.servers.size();
     result.use_autoindex = false;
-
+    
+    if (!isMethodAllowed(location, method))
+    {
+        error = METHOD_NOT_ALLOWED;
+        print_log("Method not allowed for path: " + uri, DiSPLAY_LOG);
+    }
     if (!location.redirection.empty())
     {
         result.is_redirect = true;
@@ -251,10 +257,6 @@ RoutingResult routingResult(const Config& config, const std::string& host,
         }
     }
 
-    if (!isMethodAllowed(location, method))
-    {
-        error = METHOD_NOT_ALLOWED;
-    }
 
     return result;
 }
@@ -262,7 +264,10 @@ RoutingResult routingResult(const Config& config, const std::string& host,
 bool isMethodAllowed(const LocationConfig& location, const std::string& method) {
     for (size_t i = 0; i < location.methods.size(); ++i){
         if (location.methods[i] == method)
+        {
+            std::cout << "-----------------" << std::endl;
             return true;
+        }
     }
     return false;
 }
