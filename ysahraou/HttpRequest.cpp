@@ -285,8 +285,7 @@ bool readChunkedBody(HttpRequest &request, std::string &str_body, int new_socket
         print_log( "Chunked body read successfully, total bytes read: " + intToString(request.byte_readed), DiSPLAY_LOG);
     else 
         print_log( "No data read from chunked body.", DiSPLAY_LOG);
-    std::cout << "Chunked body read successfully " << request.body << std::endl;
-    exit (0);
+    return true;
 }
 
 bool readBody(HttpRequest &request, std::string &str_body, int new_socket) {
