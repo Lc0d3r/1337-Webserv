@@ -27,7 +27,8 @@ struct HttpRequest {
     std::map<std::string, std::string> headers;
     std::string body; // the body
 
-
+    // error pages
+    std::map<int, std::string> error_pages; // e.g., 404 => "/404.html"
     //////////
     bool in_progress;
     bool done;

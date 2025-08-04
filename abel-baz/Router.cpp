@@ -245,7 +245,8 @@ RoutingResult routingResult(const Config& config, const std::string& host,
             }
             if (access(result.file_path.c_str(), R_OK) != 0)
             {
-                error = ACCESS_DENIED;
+                if (error != FILE_NOT_FOUND)
+                    error = ACCESS_DENIED;
             }
         }
     }

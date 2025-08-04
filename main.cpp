@@ -37,7 +37,7 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
 
             // Check for errors or disconnections
             if (pollfds[i].revents & (POLLHUP | POLLERR)) {
-                print_log("Client disconnected or socket error");
+                print_log("Client disconnected or socket error", DiSPLAY_LOG);
                 close(pollfds[i].fd);
                 connections.erase(pollfds[i].fd);
                 pollfds.erase(pollfds.begin() + i);
@@ -48,7 +48,7 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
             if (connections.count(pollfds[i].fd) &&
                 connections[pollfds[i].fd].type == CONNECTED &&
                 time(NULL) - connections[pollfds[i].fd].last_active > config.getKeepAliveTimeout("", connections[pollfds[i].fd].portToConnect)) {
-                print_log( "Client timed out, closing connection.");
+                print_log( "Client timed out, closing connection.", DiSPLAY_LOG);
                 close(pollfds[i].fd);
                 connections.erase(pollfds[i].fd);
                 pollfds.erase(pollfds.begin() + i);
@@ -79,11 +79,12 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
 
                     // requst object to hold the request data
                     connections[client_fd].request = HttpRequest();
-                    print_log( "Accepted new connection comming to server: " + connections[client_fd].server_ip + ":" + connections[client_fd].server_port );
+                    print_log( "Accepted new connection comming to server: " + connections[client_fd].server_ip + ":" + connections[client_fd].server_port , DiSPLAY_LOG);
                 }
                 else if (connections[pollfds[i].fd].type == CONNECTED) {
                     client_fd = pollfds[i].fd;
-                    print_log( "Reading request comming to server: " + connections[client_fd].server_ip + ":" + connections[client_fd].server_port );
+                    connections[client_fd].request.error_pages = config.getErrorPages(connections[pollfds[i].fd].hostToConnect, connections[pollfds[i].fd].portToConnect);
+                    print_log( "Reading request comming to server: " + connections[client_fd].server_ip + ":" + connections[client_fd].server_port , DiSPLAY_LOG);
 
                     // read data from the client
                     // read the headers
@@ -101,7 +102,7 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                     }
                     std::string str = decodePath(connections[pollfds[i].fd].request.path);
                     if (str.empty()) {
-                        print_log( "Invalid path in request: " + connections[pollfds[i].fd].request.path );
+                        print_log( "Invalid path in request: " + connections[pollfds[i].fd].request.path , DiSPLAY_LOG);
                         close(client_fd);
                         connections.erase(client_fd);
                         pollfds.erase(pollfds.begin() + i);
@@ -110,20 +111,22 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                     }
                     connections[pollfds[i].fd].request.path = str;
                     removeQueryString(connections[pollfds[i].fd].request);
-                    print_log( "Request with method: " + connections[pollfds[i].fd].request.method + " and path: " + connections[pollfds[i].fd].request.path_without_query + " received." );
+                    print_log( "Request with method: " + connections[pollfds[i].fd].request.method + " and path: " + connections[pollfds[i].fd].request.path_without_query + " received." , DiSPLAY_LOG);
                     // read the body
                     std::string str_body;
                     readBody(connections[pollfds[i].fd].request, str_body, client_fd);
                     if (!connections[pollfds[i].fd].request.body.empty() && connections[pollfds[i].fd].request.body.size() >= config.getMaxBodySize("", connections[pollfds[i].fd].portToConnect)) {
                         HttpResponse response;
-                        response.statusCode = 413; // Payload Too Large
-                        response.httpVersion = "HTTP/1.1";
-                        response.statusMessage = "Payload Too Large";
-                        response.addHeader("Content-Type", "text/html");
-                        response.addHeader("Connection", "close");
-                        response.addHeader("Content-Length", "57");
-                        response.setTextBody("<html><body><h1>413 Payload Too Large</h1></body></html>");
-                        print_log( "Request body size exceeds limit, sending 413 response." );
+                        if (!get_error_page(response, 413, connections[pollfds[i].fd].request, "Payload Too Large")) {
+                            response.statusCode = 413; // Payload Too Large
+                            response.httpVersion = "HTTP/1.1";
+                            response.statusMessage = "Payload Too Large";
+                            response.addHeader("Content-Type", "text/html");
+                            response.addHeader("Connection", "close");
+                            response.addHeader("Content-Length", "57");
+                            response.setTextBody("<html><body><h1>413 Payload Too Large</h1></body></html>");
+                        }
+                        print_log( "Request body size exceeds limit, sending 413 response." , DiSPLAY_LOG);
                         write(client_fd, response.toString().c_str(), response.toString().size());
                         write (client_fd, response.body.data(), response.body.size());
                         continue; // no body to read or body size exceeds limit
@@ -135,13 +138,13 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                         connections[pollfds[i].fd].keep_alive = false;
                     }
                     if (connections[pollfds[i].fd].request.in_progress) {
-                        print_log( "Request is in progress, waiting for more data..." );
+                        print_log( "Request is in progress, waiting for more data..." , DiSPLAY_LOG);
                         continue;
                     }
-                    print_log( "Request is complete, preparing response..." );
+                    print_log( "Request is complete, preparing response..." , DiSPLAY_LOG);
                     if (!response(pollfds[i].fd, connections[pollfds[i].fd].request, config, connections[pollfds[i].fd]))
                     {
-                        print_log( "Error in response, closing connection." );
+                        print_log( "Error in response, closing connection." , DiSPLAY_LOG);
                         close(client_fd);
                         connections.erase(client_fd);
                         pollfds.erase(pollfds.begin() + i);
@@ -153,13 +156,13 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                 }
             }
             else if (connections[pollfds[i].fd].type == CONNECTED && connections[pollfds[i].fd].is_old) {
-                print_log("Resuming sending file from server : " + connections[pollfds[i].fd].server_ip + ":" + connections[pollfds[i].fd].server_port);
+                print_log("Resuming sending file from server : " + connections[pollfds[i].fd].server_ip + ":" + connections[pollfds[i].fd].server_port, DiSPLAY_LOG);
                 // buffer to hold the data to be sent
                 std::vector<char> buffer(CHUNK_SIZE);
                 if (resumeSending(connections[pollfds[i].fd], buffer, pollfds[i].fd))
                     connections[pollfds[i].fd].last_active = time(NULL);
                 if (!connections[pollfds[i].fd].is_old) {
-                    print_log( "File sending completed from server : "  + connections[pollfds[i].fd].server_ip + ":" + connections[pollfds[i].fd].server_port);
+                    print_log( "File sending completed from server : "  + connections[pollfds[i].fd].server_ip + ":" + connections[pollfds[i].fd].server_port, DiSPLAY_LOG);
                     close(pollfds[i].fd);
                     connections.erase(pollfds[i].fd);
                     pollfds.erase(pollfds.begin() + i);

@@ -32,56 +32,7 @@ int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res
 	pid_t pid = fork();
 	if (pid < 0)
 	{
-		res.setTextBody("<h1>500 Internal Server Error</h1>");
-		res.statusCode = 500;
-		res.statusMessage = "Internal Server Error";
-		res.addHeader("Content-Length", intToString(res.body.size()));
-		res.addHeader("Content-Type", "text/html");
-		if (req.is_keep_alive) {
-			res.addHeader("Connection", "keep-alive");
-		} else {
-			res.addHeader("Connection", "close");
-		}
-		return (0);
-	}
-	if(pid == 0)
-	{
-		if (req.method == "POST")
-		{
-			if (req.body.empty())
-			{
-				res.setTextBody("<h1>404 Not Found</h1>");
-				res.statusCode = 404;
-				res.statusMessage = "Not Found";
-				res.addHeader("Content-Length", intToString(res.body.size()));
-				res.addHeader("Content-Type", "text/html");
-				if (req.is_keep_alive) {
-					res.addHeader("Connection", "keep-alive");
-				} else {
-					res.addHeader("Connection", "close");
-				}
-				return (0);
-			}
-			else
-			{
-				if (dup2(input_fd[0], STDIN_FILENO) < 0)
-				{
-					res.setTextBody("<h1>500 Internal Server Error</h1>");
-					res.statusCode = 500;
-					res.statusMessage = "Internal Server Error";
-					res.addHeader("Content-Length", intToString(res.body.size()));
-					res.addHeader("Content-Type", "text/html");
-					if (req.is_keep_alive) {
-						res.addHeader("Connection", "keep-alive");
-					} else {
-						res.addHeader("Connection", "close");
-					}
-					return (0);
-				}
-			}
-		}
-		if (dup2(output_fd[1], STDOUT_FILENO) < 0)
-		{
+		if (!get_error_page(res, 500, req, "Internal Server Error")) {
 			res.setTextBody("<h1>500 Internal Server Error</h1>");
 			res.statusCode = 500;
 			res.statusMessage = "Internal Server Error";
@@ -91,6 +42,63 @@ int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res
 				res.addHeader("Connection", "keep-alive");
 			} else {
 				res.addHeader("Connection", "close");
+			}
+		}
+		return (0);
+	}
+	if(pid == 0)
+	{
+		if (req.method == "POST")
+		{
+			if (req.body.empty())
+			{
+				if (get_error_page(res, 404, req, "Not Found")) {
+					res.setTextBody("<h1>404 Not Found</h1>");
+					res.statusCode = 404;
+					res.statusMessage = "Not Found";
+					res.addHeader("Content-Length", intToString(res.body.size()));
+					res.addHeader("Content-Type", "text/html");
+					if (req.is_keep_alive) {
+						res.addHeader("Connection", "keep-alive");
+					} else {
+						res.addHeader("Connection", "close");
+					}
+				}
+				return (0);
+			}
+			else
+			{
+				if (dup2(input_fd[0], STDIN_FILENO) < 0)
+				{
+					if (!get_error_page(res, 500, req, "Internal Server Error")) {
+						res.setTextBody("<h1>500 Internal Server Error</h1>");
+						res.statusCode = 500;
+						res.statusMessage = "Internal Server Error";
+						res.addHeader("Content-Length", intToString(res.body.size()));
+						res.addHeader("Content-Type", "text/html");
+						if (req.is_keep_alive) {
+							res.addHeader("Connection", "keep-alive");
+						} else {
+							res.addHeader("Connection", "close");
+						}
+					}
+					return (0);
+				}
+			}
+		}
+		if (dup2(output_fd[1], STDOUT_FILENO) < 0)
+		{
+			if (!get_error_page(res, 500, req, "Internal Server Error")) {
+				res.setTextBody("<h1>500 Internal Server Error</h1>");
+				res.statusCode = 500;
+				res.statusMessage = "Internal Server Error";
+				res.addHeader("Content-Length", intToString(res.body.size()));
+				res.addHeader("Content-Type", "text/html");
+				if (req.is_keep_alive) {
+					res.addHeader("Connection", "keep-alive");
+				} else {
+					res.addHeader("Connection", "close");
+				}
 			}
 			return (0);
 		}
@@ -105,15 +113,17 @@ int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res
 		argv[2] = NULL;
 		if (execve(argv[0], argv, _envc) < 0)
 		{
-			res.setTextBody("<h1>500 Internal Server Error</h1>");
-			res.statusCode = 500;
-			res.statusMessage = "Internal Server Error";
-			res.addHeader("Content-Length", intToString(res.body.size()));
-			res.addHeader("Content-Type", "text/html");
-			if (req.is_keep_alive) {
-				res.addHeader("Connection", "keep-alive");
-			} else {
-				res.addHeader("Connection", "close");
+			if (!get_error_page(res, 500, req, "Internal Server Error")) {
+				res.setTextBody("<h1>500 Internal Server Error</h1>");
+				res.statusCode = 500;
+				res.statusMessage = "Internal Server Error";
+				res.addHeader("Content-Length", intToString(res.body.size()));
+				res.addHeader("Content-Type", "text/html");
+				if (req.is_keep_alive) {
+					res.addHeader("Connection", "keep-alive");
+				} else {
+					res.addHeader("Connection", "close");
+				}
 			}
 			return (0);
 		}
@@ -229,16 +239,17 @@ int Cgi::_checker(RoutingResult &serv, HttpRequest &req, HttpResponse &res)
 {
 	if (!_checkExtention(req.path_without_query, serv.getExtension()) || !_checkPathExtension(req.getExtension(), getScriptFilename(req)))
 	{
-
-		res.statusCode = 403;
-		res.statusMessage = "Forbidden";
-		res.setTextBody("<h1>403 Forbidden</h1>");
-		res.addHeader("Content-Length", intToString(res.body.size()));
-		res.addHeader("Content-Type", "text/html");
-		if (req.is_keep_alive) {
-			res.addHeader("Connection", "keep-alive");
-		} else {
-			res.addHeader("Connection", "close");
+		if (get_error_page(res, 403, req, "Forbidden")) {
+			res.statusCode = 403;
+			res.statusMessage = "Forbidden";
+			res.setTextBody("<h1>403 Forbidden</h1>");
+			res.addHeader("Content-Length", intToString(res.body.size()));
+			res.addHeader("Content-Type", "text/html");
+			if (req.is_keep_alive) {
+				res.addHeader("Connection", "keep-alive");
+			} else {
+				res.addHeader("Connection", "close");
+			}
 		}
 		return 1; // Extension not allowed
 	}

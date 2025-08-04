@@ -44,4 +44,4 @@ struct HttpResponse {
 bool response(int client_fd,HttpRequest &request, Config &config, ConnectionInfo &connections);
 void splithostport(const std::string& host, std::string& hostname, int& port);
 bool resumeSending(ConnectionInfo& connections, std::vector<char> &buffer, int client_fd);
-bool get_error_page(HttpResponse &response, int error_code, const std::string &error_message, const RoutingResult &routing_result);
+bool get_error_page(HttpResponse &response, int error_code, const HttpRequest &request, std::string error_message);
