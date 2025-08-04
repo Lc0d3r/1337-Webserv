@@ -230,20 +230,77 @@ void readHeaders(std::string &request_data, int new_socket) {
     }
 }
 
-bool readChunkedBody(HttpRequest &request, std::string &str_body, int new_socket) {
-    char buffer[2] = {0};
-    while (str_body.find("\r\n\r\n") == std::string::npos && request.method == "POST")
-    {
-        int bytes = read(new_socket, buffer, 1);
-        if (bytes <= 0) {
-            break;
-        }
-        str_body.append(buffer, bytes);
-    }
-    return true;
+bool isHex(const std::string& hexStr, int& value) {
+    std::istringstream iss(hexStr);
+    iss >> std::hex >> value;
+
+    // Check if the stream failed or not fully consumed
+    return !iss.fail() && iss.eof();
 }
 
-void readBody(HttpRequest &request, std::string &str_body, int new_socket) {
+bool readChunkedBody(HttpRequest &request, std::string &str_body, int new_socket) {
+    char buffer[2] = {0};
+    std::string chunk_size_str;
+    int chunk_size = 0;
+
+    print_log( "Reading chunked body..." , DiSPLAY_LOG);
+    while (true) {
+        // Read chunk size
+        chunk_size_str.clear();
+        while (true) {
+            int bytes = read(new_socket, buffer, 1);
+            if (bytes <= 0) {
+                // client disconnected or error
+                return false;
+            }
+            if (buffer[0] == '\r') {
+                // End of chunk size line
+                break;
+            }
+            chunk_size_str += buffer[0];
+        }
+        // skip the newline character
+        read(new_socket, buffer, 1); // Read '\n'
+        if (chunk_size_str.empty()) {
+            // No more chunks
+            break;
+        }
+        // Convert hex to int
+        if (!isHex(chunk_size_str, chunk_size)) {
+            std::cout << "Invalid chunk size: " << chunk_size_str << std::endl;
+            return false;
+        }
+        if (chunk_size == 0) {
+            // Last chunk
+            break;
+        }
+        // Read the chunk data
+        str_body.clear();
+        while ((int)str_body.size() < chunk_size) {
+            int bytes = read(new_socket, buffer, 1);
+            if (bytes <= 0) {
+                // client disconnected or error
+                return false;
+            }
+            str_body.append(buffer, bytes);
+        }
+
+        request.byte_readed += str_body.size();
+        request.body += str_body;
+
+        // Read the trailing CRLF after the chunk
+        read(new_socket, buffer, 2); // Read \r\n
+    }
+
+    if (request.byte_readed > 0)
+        print_log( "Chunked body read successfully, total bytes read: " + intToString(request.byte_readed), DiSPLAY_LOG);
+    else 
+        print_log( "No data read from chunked body.", DiSPLAY_LOG);
+    std::cout << "Chunked body read successfully " << request.body << std::endl;
+    exit (0);
+}
+
+bool readBody(HttpRequest &request, std::string &str_body, int new_socket) {
     int content_length = 0;
     print_log( "Reading the body..." , DiSPLAY_LOG);
     if (request.headers.count("Content-Length"))
@@ -270,8 +327,9 @@ void readBody(HttpRequest &request, std::string &str_body, int new_socket) {
             request.in_progress = false;
             print_log( "Request done, bytes readed: " + intToString(request.byte_readed) + ", content length: " + intToString(content_length) , DiSPLAY_LOG);
         }
+        return true; // body read successfully
     }
-    else 
+    else if (request.headers.count("Transfer-Encoding") && request.headers["Transfer-Encoding"] == "chunked")
     {
         if (readChunkedBody(request, str_body, new_socket)) {
             request.in_progress = false;
@@ -279,7 +337,10 @@ void readBody(HttpRequest &request, std::string &str_body, int new_socket) {
             request.byte_readed = str_body.size();
             request.body = str_body;
         }
+        return true; // chunked body read successfully
     }
+    else
+        return false;
 }
 
 void removeQueryString(HttpRequest &request) {

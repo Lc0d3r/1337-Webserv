@@ -114,7 +114,28 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                     print_log( "Request with method: " + connections[pollfds[i].fd].request.method + " and path: " + connections[pollfds[i].fd].request.path_without_query + " received." , DiSPLAY_LOG);
                     // read the body
                     std::string str_body;
-                    readBody(connections[pollfds[i].fd].request, str_body, client_fd);
+                    if (!readBody(connections[pollfds[i].fd].request, str_body, client_fd))
+                    {
+                        print_log( "No body to read or no conent length specified or no transfer encoding specified." , DiSPLAY_LOG);
+                        HttpResponse response;
+                        if (!get_error_page(response, 400, connections[pollfds[i].fd].request, "Bad Request")) {
+                            response.statusCode = 400; // Bad Request
+                            response.httpVersion = "HTTP/1.1";
+                            response.statusMessage = "Bad Request";
+                            response.addHeader("Content-Type", "text/html");
+                            response.addHeader("Connection", "close");
+                            response.addHeader("Content-Length", "57");
+                            response.setTextBody("<html><body><h1>400 Bad Request</h1></body></html>");
+                        }
+                        print_log( "Sending 400 Bad Request response." , DiSPLAY_LOG);
+                        write(client_fd, response.toString().c_str(), response.toString().size());
+                        write (client_fd, response.body.data(), response.body.size());
+                        close(pollfds[i].fd);
+                        connections.erase(pollfds[i].fd);
+                        pollfds.erase(pollfds.begin() + i);
+                        --i;
+                        continue; // no body to read or body size exceeds limit
+                    }
                     if (!connections[pollfds[i].fd].request.body.empty() && connections[pollfds[i].fd].request.body.size() >= config.getMaxBodySize("", connections[pollfds[i].fd].portToConnect)) {
                         HttpResponse response;
                         if (!get_error_page(response, 413, connections[pollfds[i].fd].request, "Payload Too Large")) {

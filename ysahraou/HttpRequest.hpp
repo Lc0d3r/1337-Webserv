@@ -50,4 +50,4 @@ struct HttpRequest {
 void removeQueryString(HttpRequest &request);
 int parse_req(std::string request_data, int socket_fd, HttpRequest &request);
 void readHeaders(std::string &request_data, int new_socket);
-void readBody(HttpRequest &request, std::string &str_body, int new_socket);
+bool readBody(HttpRequest &request, std::string &str_body, int new_socket);
