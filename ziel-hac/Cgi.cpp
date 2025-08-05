@@ -1,5 +1,6 @@
 #include "cgi.hpp"
 #include "../ysahraou/HttpResponse.hpp"
+#include <sys/wait.h>
 
 int Cgi::getvalidChecker() const
 {
@@ -24,7 +25,7 @@ Cgi::Cgi(RoutingResult &serv, HttpRequest &req, HttpResponse &res): valid_checke
 
 int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res)
 {
-	(void)serv; // Suppress unused parameter warning
+	int status;
 	std::string body;
 	pipe(output_fd);
 	pipe(input_fd);
@@ -50,57 +51,15 @@ int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res
 		if (req.method == "POST")
 		{
 			if (req.body.empty())
-			{
-				if (get_error_page(res, 404, req, "Not Found")) {
-					res.setTextBody("<h1>404 Not Found</h1>");
-					res.statusCode = 404;
-					res.statusMessage = "Not Found";
-					res.addHeader("Content-Length", intToString(res.body.size()));
-					res.addHeader("Content-Type", "text/html");
-					if (req.is_keep_alive) {
-						res.addHeader("Connection", "keep-alive");
-					} else {
-						res.addHeader("Connection", "close");
-					}
-				}
-				return (0);
-			}
+				exit(2);
 			else
 			{
 				if (dup2(input_fd[0], STDIN_FILENO) < 0)
-				{
-					if (!get_error_page(res, 500, req, "Internal Server Error")) {
-						res.setTextBody("<h1>500 Internal Server Error</h1>");
-						res.statusCode = 500;
-						res.statusMessage = "Internal Server Error";
-						res.addHeader("Content-Length", intToString(res.body.size()));
-						res.addHeader("Content-Type", "text/html");
-						if (req.is_keep_alive) {
-							res.addHeader("Connection", "keep-alive");
-						} else {
-							res.addHeader("Connection", "close");
-						}
-					}
-					return (0);
-				}
+					exit(EXIT_FAILURE);
 			}
 		}
 		if (dup2(output_fd[1], STDOUT_FILENO) < 0)
-		{
-			if (!get_error_page(res, 500, req, "Internal Server Error")) {
-				res.setTextBody("<h1>500 Internal Server Error</h1>");
-				res.statusCode = 500;
-				res.statusMessage = "Internal Server Error";
-				res.addHeader("Content-Length", intToString(res.body.size()));
-				res.addHeader("Content-Type", "text/html");
-				if (req.is_keep_alive) {
-					res.addHeader("Connection", "keep-alive");
-				} else {
-					res.addHeader("Connection", "close");
-				}
-			}
-			return (0);
-		}
+			exit(EXIT_FAILURE);
 		close(input_fd[1]);
 		close(output_fd[0]);
 		close(output_fd[1]);
@@ -111,40 +70,58 @@ int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res
 		argv[1] = const_cast<char *>(serv.file_path.c_str());
 		argv[2] = NULL;
 		if (execve(argv[0], argv, _envc) < 0)
-		{
-			if (!get_error_page(res, 500, req, "Internal Server Error")) {
-				res.setTextBody("<h1>500 Internal Server Error</h1>");
-				res.statusCode = 500;
-				res.statusMessage = "Internal Server Error";
-				res.addHeader("Content-Length", intToString(res.body.size()));
-				res.addHeader("Content-Type", "text/html");
-				if (req.is_keep_alive) {
-					res.addHeader("Connection", "keep-alive");
-				} else {
-					res.addHeader("Connection", "close");
-				}
-			}
-			return (0);
-		}
-
+			exit(EXIT_FAILURE);
 	}
 	else
 	{
+		waitpid(pid, &status, 0);
+		if (WIFEXITED(status))
+		{
+			int exitStatus = WEXITSTATUS(status);
+			if (exitStatus == 1)
+			{
+					if (get_error_page(res, 500, req, "Internal Server Error")) {
+					res.statusCode = 500;
+					res.statusMessage = "Internal Server Error";
+					res.setTextBody("<h1>500 Internal Server Error</h1>");
+					res.addHeader("Content-Length", intToString(res.body.size()));
+					res.addHeader("Content-Type", "text/html");
+					if (req.is_keep_alive)
+						res.addHeader("Connection", "keep-alive");
+					else 
+						res.addHeader("Connection", "close");
+				}
+			}
+			else if (exitStatus == 2)
+			{
+				if (get_error_page(res, 404, req, "Not Found")) {
+					res.setTextBody("<h1>404 Not Found</h1>");
+					res.statusCode = 404;
+					res.statusMessage = "Not Found";
+					res.addHeader("Content-Length", intToString(res.body.size()));
+					res.addHeader("Content-Type", "text/html");
+					if (req.is_keep_alive) 
+						res.addHeader("Connection", "keep-alive");
+					else 
+						res.addHeader("Connection", "close");
+				}
+			}
+		}
 		if (req.method == "POST" && !req.body.empty())
 			write(input_fd[1], req.body.c_str(), req.body.length());
 		close(input_fd[0]);
 		close(output_fd[1]);
+		close(input_fd[1]);
 		char buffer[1024];
 		int bytesRead;
 		while ((bytesRead = read(output_fd[0], buffer, sizeof(buffer) - 1)) > 0)
 		{
 			buffer[bytesRead] = '\0'; 
-
-			write(STDOUT_FILENO, buffer, bytesRead);
 			body += std::string(buffer, bytesRead);
 		}
 		res.setTextBody(body);
 		res.headers["Content-Length"] = intToString(body.length());
+		close(output_fd[0]);
 
 	}
 	return 1; // Add return statement
@@ -159,12 +136,12 @@ int	Cgi::_mergeEnv()
 		_envVector.push_back(envVar);
 	}
 	_envc = new char*[_envVector.size() + 1];
-	_envc[_envVector.size()] = NULL; // Null-terminate the array of strings
 	if (!_envc)
 	{
 		std::cerr << "Memory allocation failed for environment variables." << std::endl;
 		return 0; // Memory allocation failure
 	}
+	_envc[_envVector.size()] = NULL; // Null-terminate the array of strings
 	for (size_t i = 0; i < _envVector.size(); ++i)
 	{
 		_envc[i] = new char[_envVector[i].length() + 1];
@@ -229,7 +206,7 @@ void Cgi::setEnv(RoutingResult &serv, HttpRequest &req)
 	_tmpEnv["CONTENT_TYPE"] = req.getContentType();
 	_tmpEnv["CONTENT_LENGTH"] = req.getContentLength();
 	_tmpEnv["HTTP_COOKIE"] = req.getCookie();
-	_tmpEnv["SCRIPT_FILENAME"] = getScriptFilename(req);
+	_tmpEnv["INTERPRETER_SCRIPT"] = getScriptFilename(req);
 	_tmpEnv["ACCOUNTS"] = intToString(cookies_map.size());
 }
 //DO:1.checks if the extension is in the conf file, 2.checks if the extension in the path is valid 3.checks if the interpreter is valid
@@ -321,5 +298,8 @@ void Cgi::_printEnv()
 
 Cgi::~Cgi()
 {
+	for (size_t i = 0; i < _envVector.size(); ++i)
+		delete[] _envc[i];
+	delete[] _envc;
 }
 
