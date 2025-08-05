@@ -264,10 +264,7 @@ RoutingResult routingResult(const Config& config, const std::string& host,
 bool isMethodAllowed(const LocationConfig& location, const std::string& method) {
     for (size_t i = 0; i < location.methods.size(); ++i){
         if (location.methods[i] == method)
-        {
-            std::cout << "-----------------" << std::endl;
             return true;
-        }
     }
     return false;
 }

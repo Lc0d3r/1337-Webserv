@@ -231,6 +231,7 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
         response.statusCode = 301; // Moved Permanently
         response.statusMessage = "Moved Permanently";
         response.addHeader("Location", result.redirect_url);
+        response.addHeader("Content-Length", "0");
         if (request.is_keep_alive) {
             response.addHeader("Connection", "keep-alive");
         } else {
@@ -389,7 +390,7 @@ bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
         }
     }
     else if (error == SERVER_NOT_FOUND || error == LOCATION_NOT_FOUND || error == FILE_NOT_FOUND) {
-        print_log( "not found for host: " + hostname + ":" + intToString(port) , DiSPLAY_LOG);
+        print_log( "server or page not found for host: " + hostname + ":" + intToString(port) , DiSPLAY_LOG);
         if (!get_error_page(response, 404, request, "Not Found")) {
             response.statusCode = 404; // Not Found
             response.statusMessage = "Not Found";
