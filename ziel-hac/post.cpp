@@ -1,6 +1,7 @@
 #include "post.hpp"
 #include "../ysahraou/HttpResponse.hpp"
 #include "cgi_utils.hpp"
+#include <../ysahraou/utils.hpp>
 
 int parsechunked(HttpRequest &req, RoutingResult &ser) //<-- i need to parse chuncked body, for both cgi and non cgi, put to bodies one in the request to usit in cgi and the in the upload file in the conf.file 
 {
@@ -28,12 +29,12 @@ int handle_multiple_form_data(HttpRequest &req, RoutingResult &ser)
 			int fd = open(upload_dir.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
 			if (fd < 0)
 			{
-				std::cout << "500 error opening file" << std::endl;
+				print_log("500 error opening file", DiSPLAY_LOG);
 				return 0; // Handle error appropriately
 			}
 			if (write(fd, headers_and_body[1].c_str(), headers_and_body[1].length()) < 0)
 			{
-				std::cerr << "Failed to write to file: " << filename << std::endl;
+				print_log("Failed to write to file: " + filename, DiSPLAY_LOG);
 				close(fd);
 				return 0; // Handle error appropriately
 			}
@@ -42,13 +43,12 @@ int handle_multiple_form_data(HttpRequest &req, RoutingResult &ser)
 		{
 			n = headers_and_body[0].find("name=\"");
 			std::string filename = headers_and_body[0].substr(n + 7, (headers_and_body[0].find("\"", n + 7)) - (n + 7));
-			std::cout << "Filename: " << filename << std::endl;
 			int fd = open(filename.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
 			if (fd < 0)
 				return 0;
 			if (write(fd, headers_and_body[1].c_str(), headers_and_body[1].length()) < 0)
 			{
-				std::cerr << "Failed to write to file: " << filename << std::endl;
+				print_log("Failed to write to file: " + filename, DiSPLAY_LOG);
 				close(fd);
 				return 0; // Handle error appropriately
 			}
@@ -128,17 +128,19 @@ int posthandler(HttpRequest *req, RoutingResult *ser, HttpResponse &res)
 		}
         else
 		{
-			res.setTextBody("<h1>411 Length Required</h1>");
-			res.statusCode = 411;
-			res.statusMessage = "Length Required";
-			res.addHeader("Content-Length", intToString(res.body.size()));
-			res.addHeader("Content-Type", "text/html");
-			if (req->is_keep_alive) {
-				res.addHeader("Connection", "keep-alive");
-			} else {
-				res.addHeader("Connection", "close");
+			if (!get_error_page(res, 500, *req, "Internal Server Error")) {
+				res.setTextBody("<h1>411 Length Required</h1>");
+				res.statusCode = 411;
+				res.statusMessage = "Length Required";
+				res.addHeader("Content-Length", intToString(res.body.size()));
+				res.addHeader("Content-Type", "text/html");
+				if (req->is_keep_alive) {
+					res.addHeader("Connection", "keep-alive");
+				} else {
+					res.addHeader("Connection", "close");
+				}
+				return 0;
 			}
-			return 0;
 		}
     }
 	return 1;

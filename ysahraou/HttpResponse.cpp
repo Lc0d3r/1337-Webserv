@@ -230,6 +230,7 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
     if (result.is_redirect) {
         response.statusCode = 301; // Moved Permanently
         response.statusMessage = "Moved Permanently";
+        std::cout << "Redirecting to: " << result.redirect_url << std::endl;
         response.addHeader("Location", result.redirect_url);
         response.addHeader("Content-Length", "0");
         if (request.is_keep_alive) {
@@ -262,18 +263,18 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
                 print_log("Session ID set in response: " + response.setSessionId(), DiSPLAY_LOG);
             }
         } else {
-            if (!get_error_page(response, 500, request, "Internal Server Error")) {
+            if (!get_error_page(response, 403, request, "Forbidden")) {
                 print_log("Failed to generate autoindex for: " + result.file_path, DiSPLAY_LOG);
-                response.statusCode = 500; // Internal Server Error
-                response.statusMessage = "Internal Server Error";
+                response.statusCode = 403; // Forbidden
+                response.statusMessage = "Forbidden";
+                response.addHeader("Content-Type", "text/html");
+                response.setTextBody("<h1>403 Forbidden</h1>");
+                response.addHeader("Content-Length", intToString(response.body.size()));
                 if (request.is_keep_alive) {
                     response.addHeader("Connection", "keep-alive");
                 } else {
                     response.addHeader("Connection", "close");
                 }
-                response.setTextBody("<h1>500 Internal Server Error</h1>");
-                response.addHeader("Content-Type", "text/html");
-                response.addHeader("Content-Length", intToString(response.body.size()));
             }
         }
         return;
@@ -403,7 +404,6 @@ bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
                 response.addHeader("Connection", "close");
         }
     } else if (error == METHOD_NOT_ALLOWED) {
-        std::cout << "niggerboy" << std::endl;
         print_log( "Method not allowed for path: " + request.path_without_query , DiSPLAY_LOG);
         if (!get_error_page(response, 405, request, "Method Not Allowed")) {
             response.statusCode = 405; // Method Not Allowed
@@ -423,6 +423,20 @@ bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
             response.statusMessage = "Forbidden";
             response.addHeader("Content-Type", "text/html");
             response.setTextBody("<h1>403 Forbidden</h1>");
+            response.addHeader("Content-Length", intToString(response.body.size()));
+            if (request.is_keep_alive)
+                response.addHeader("Connection", "keep-alive");
+            else
+                response.addHeader("Connection", "close");
+        }
+    }
+    else {
+        print_log( "Unknown error occurred, setting 500 Internal Server Error." , DiSPLAY_LOG);
+        if (!get_error_page(response, 500, request, "Internal Server Error")) {
+            response.statusCode = 500; // Internal Server Error
+            response.statusMessage = "Internal Server Error";
+            response.addHeader("Content-Type", "text/html");
+            response.setTextBody("<h1>500 Internal Server Error</h1>");
             response.addHeader("Content-Length", intToString(response.body.size()));
             if (request.is_keep_alive)
                 response.addHeader("Connection", "keep-alive");

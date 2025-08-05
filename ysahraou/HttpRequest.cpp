@@ -255,8 +255,9 @@ bool readChunkedBody(HttpRequest &request, std::string &str_body, int new_socket
             break;
         }
         // Convert hex to int
-        if (!isHex(chunk_size_str, chunk_size)) {
-            std::cout << "Invalid chunk size: " << chunk_size_str << std::endl;
+        if (!isHex(chunk_size_str, chunk_size))
+        {
+            print_log("Invalid chunk size: " + chunk_size_str, DiSPLAY_LOG);
             return false;
         }
         if (chunk_size == 0) {

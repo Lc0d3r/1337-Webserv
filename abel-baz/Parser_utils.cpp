@@ -127,7 +127,7 @@ void Parser::parseErrorPage(ServerConfig& server) {
         char buffer[1024];
         if (!getcwd(buffer, sizeof(buffer)))
             throw std::runtime_error("Failed to get current working directory for error_page path");
-        fileToken.text = std::string(buffer) + "/error_pages/" + fileToken.text; // Make absolute path
+        fileToken.text = std::string(buffer) + "/" + fileToken.text; // Make absolute path
     }
 
     // Step 3: Store in map
