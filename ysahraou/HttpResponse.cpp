@@ -220,10 +220,6 @@ bool resumeSending(ConnectionInfo &connections, std::vector<char> &buffer, int c
     return true;
 }
 
-bool isURL(const std::string& str) {
-    return (str.find("http://", 0) == 0 || str.find("https://", 0) == 0);
-}
-
 void handleGETRequest(HttpResponse& response, const HttpRequest& request, const Config& config, ConnectionInfo& connections) {
 
     int port;
@@ -232,28 +228,15 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
     errorType error = NO_ERROR;
     RoutingResult result = routingResult(config, hostname, port, request.path_without_query, request.method, error);
     if (result.is_redirect) {
-        if (!isURL(result.redirect_url)) {
-            response.statusCode = 302; // Found
-            response.statusMessage = "Found";
-            response.addHeader("Location", result.redirect_url);
-            print_log("Redirecting to: " + result.redirect_url, DiSPLAY_LOG);
-            response.addHeader("Content-Length", "0");
-            if (request.is_keep_alive) {
-                response.addHeader("Connection", "keep-alive");
-            } else {
-                response.addHeader("Connection", "close");
-            }
+        response.statusCode = 301; // Moved Permanently
+        response.statusMessage = "Moved Permanently";
+        print_log("Redirecting to: " + result.redirect_url, DiSPLAY_LOG);
+        response.addHeader("Location", result.redirect_url);
+        response.addHeader("Content-Length", "0");
+        if (request.is_keep_alive) {
+            response.addHeader("Connection", "keep-alive");
         } else {
-            response.statusCode = 301; // Moved Permanently
-            response.statusMessage = "Moved Permanently";
-            print_log("Redirecting to: " + result.redirect_url, DiSPLAY_LOG);
-            response.addHeader("Location", result.redirect_url);
-            response.addHeader("Content-Length", "0");
-            if (request.is_keep_alive) {
-                response.addHeader("Connection", "keep-alive");
-            } else {
-                response.addHeader("Connection", "close");
-            }
+            response.addHeader("Connection", "close");
         }
         return;
     }
