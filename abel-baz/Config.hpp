@@ -1,5 +1,4 @@
-#ifndef CONFIG_HPP
-#define CONFIG_HPP
+#pragma once
 
 #include <iostream>
 #include <string>
@@ -50,6 +49,3 @@ struct Config
     size_t getMaxBodySize(std::string host, int port) const;
     std::map<int, std::string> getErrorPages(std::string host, int port) const;
 };
-
-#endif // CONFIG_HPP
-
