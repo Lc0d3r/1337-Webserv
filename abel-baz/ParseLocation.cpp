@@ -1,7 +1,7 @@
 #include "Parser.hpp"
-#include <unistd.h> // for getcwd
-#include <limits.h> // for PATH_MAX
-#include <cstring>   // for strlen
+#include <unistd.h>
+#include <limits.h>
+#include <cstring>
 
 void Parser::parseLocationRoot(LocationConfig& loc) {
     Token val = get();
@@ -15,7 +15,6 @@ void Parser::parseLocationRoot(LocationConfig& loc) {
         char cwd[PATH_MAX];
         if (!getcwd(cwd, sizeof(cwd)))
             throw std::runtime_error("Failed to get current working directory");
-        // Ensure there is a slash between cwd and rootPath
         if (cwd[strlen(cwd) - 1] == '/')
             rootPath = std::string(cwd) + rootPath;
         else
@@ -35,7 +34,7 @@ void Parser::parseLocationIndex(LocationConfig& loc) {
     if (val.text.find('/') != std::string::npos)
         throw std::runtime_error("Index cannot contain '/' character");
     if (val.text.find('.') == std::string::npos)
-        throw std::runtime_error("Index must have an extension (e.g. index.html)");
+        throw std::runtime_error("Index must have an extension (index.html)");
     
     loc.index = val.text;
 

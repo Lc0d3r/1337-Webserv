@@ -2,9 +2,9 @@
 #include "Router.hpp"
 
 
-int Config::getKeepAliveTimeout(std::string host, int port) const {
+int Config::getKeepAliveTimeout(std::string host, int port, const std::string& server_ip) const {
     errorType error = NO_ERROR;
-    ServerConfig server = matchServer(*this, host, port, error);
+    ServerConfig server = matchServer(*this, host, port, error, server_ip);
     if (error != NO_ERROR) {
         std::cerr << "Error occurred: " << error << std::endl;
         return 0;
@@ -15,9 +15,9 @@ int Config::getKeepAliveTimeout(std::string host, int port) const {
     return 10;
 }
 
-size_t Config::getMaxBodySize(std::string host, int port) const {
+size_t Config::getMaxBodySize(std::string host, int port, const std::string& server_ip) const {
     errorType error = NO_ERROR;
-    ServerConfig server = matchServer(*this, host, port, error);
+    ServerConfig server = matchServer(*this, host, port, error, server_ip);
     if (error != NO_ERROR) {
         std::cerr << "Error occurred: " << error << std::endl;
         return 0;
@@ -28,9 +28,9 @@ size_t Config::getMaxBodySize(std::string host, int port) const {
     return 1000000;
 }
 
-std::map<int, std::string> Config::getErrorPages(std::string host, int port) const {
+std::map<int, std::string> Config::getErrorPages(std::string host, int port, const std::string& server_ip) const {
     errorType error = NO_ERROR;
-    ServerConfig server = matchServer(*this, host, port, error);
+    ServerConfig server = matchServer(*this, host, port, error, server_ip);
     if (error != NO_ERROR) {
         std::cerr << "Error occurred: " << error << std::endl;
         return std::map<int, std::string>();

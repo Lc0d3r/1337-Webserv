@@ -1,5 +1,5 @@
 #include "Parser.hpp"
-// #include <stdexcept>
+#include "../ysahraou/utils.hpp"
 
 Token Parser::peek() {
     if (_index < _tokens.size())
@@ -14,7 +14,6 @@ Token Parser::get() {
 }
 
 //PARSING SECTION
-// Parses the entire configuration file and returns a Config object
 
 Config Parser::parse() {
     Config config;
@@ -77,6 +76,11 @@ void Parser::parseServer(Config& config) {
     
     if (get().type != BRACE_CLOSE)
         throw std::runtime_error("Expected '}' at end of server block");
-    
+    if (server.listens.empty())
+    {
+        HostPort defaultHostPort;
+        server.listens.push_back(defaultHostPort);
+        print_log("No listen directive found, using default listen host and port: " + defaultHostPort.listen_host + ":" + intToString(defaultHostPort.listen_port), DiSPLAY_LOG);
+    }
     config.servers.push_back(server);
 }
