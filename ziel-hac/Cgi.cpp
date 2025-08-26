@@ -73,7 +73,10 @@ int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res
 		argv[1] = const_cast<char *>(serv.file_path.c_str());
 		argv[2] = NULL;
 		if (execve(argv[0], argv, _envc) < 0)
+		{
+			std::cout << "cscsc------------------------------------------------------------------------------" << std::endl;
 			exit(EXIT_FAILURE);
+		}
 	}
 	else
 	{

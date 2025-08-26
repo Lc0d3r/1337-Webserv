@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { env, stdin } = process;
+const { env, stdin, stdout } = process;
 
 const readStdin = () => {
   return new Promise((resolve) => {
@@ -22,9 +22,11 @@ const readStdin = () => {
     body = await readStdin();
   }
 
-  console.log("Content-Type: text/html\n");
+  // ✅ Correct CGI headers: Content-Type + CRLF CRLF
+  stdout.write("Content-Type: text/html\r\n\r\n");
 
-  console.log(`<!DOCTYPE html>
+  // ✅ HTML output
+  stdout.write(`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
