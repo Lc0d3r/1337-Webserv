@@ -1,6 +1,7 @@
 #include "cgi.hpp"
 #include "../ysahraou/HttpResponse.hpp"
 #include <sys/wait.h>
+#include "../ysahraou/utils.hpp"
 
 int Cgi::getvalidChecker() const
 {
@@ -8,7 +9,7 @@ int Cgi::getvalidChecker() const
 }
 
 
-Cgi::Cgi(RoutingResult &serv, HttpRequest &req, HttpResponse &res): valid_checker(1)
+Cgi::Cgi(RoutingResult &serv, HttpRequest &req, HttpResponse &res):_envc(NULL), valid_checker(1) 
 {
 	if (!_checker(serv, req, res))
 	{
@@ -25,7 +26,9 @@ Cgi::Cgi(RoutingResult &serv, HttpRequest &req, HttpResponse &res): valid_checke
 
 int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res)
 {
+	int timeout = 1;
 	int status;
+	int result; 
 	std::string body;
 	pipe(output_fd);
 	pipe(input_fd);
@@ -74,7 +77,30 @@ int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res
 	}
 	else
 	{
-		waitpid(pid, &status, 0);
+		result = waitpid(pid, &status, WNOHANG);
+		if (result == 0)
+		usleep(500000);
+		result = waitpid(pid, &status, WNOHANG);
+		if (result == 0)
+		{
+			kill(pid, SIGKILL);
+			if(!get_error_page(res, 504, req, "Gateway Timeout")) {
+				std::cout << "CGI script timed out after " << timeout << " seconds." << std::endl;
+				res.statusCode = 504; // Gateway Timeout
+				res.statusMessage = "Gateway Timeout";
+				res.setTextBody("<h1>504 Gateway Timeout</h1>");
+				res.addHeader("Content-Length", intToString(res.body.size()));
+				res.addHeader("Content-Type", "text/html");
+				if (req.is_keep_alive) {
+					res.addHeader("Connection", "keep-alive");
+				} else {
+					res.addHeader("Connection", "close");
+				}
+
+				print_log("CGI script timed out after " + intToString(timeout) + " seconds.", DiSPLAY_LOG);
+			}
+			return 0; // Timeout occurred
+		}
 		if (WIFEXITED(status))
 		{
 			int exitStatus = WEXITSTATUS(status);
@@ -90,6 +116,7 @@ int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res
 						res.addHeader("Connection", "keep-alive");
 					else 
 						res.addHeader("Connection", "close");
+					return 0;
 				}
 			}
 			else if (exitStatus == 2)
@@ -104,6 +131,7 @@ int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res
 						res.addHeader("Connection", "keep-alive");
 					else 
 						res.addHeader("Connection", "close");
+					return 0;
 				}
 			}
 		}
@@ -139,9 +167,9 @@ int	Cgi::_mergeEnv()
 	if (!_envc)
 	{
 		std::cerr << "Memory allocation failed for environment variables." << std::endl;
-		return 0; // Memory allocation failure
+		return 0;
 	}
-	_envc[_envVector.size()] = NULL; // Null-terminate the array of strings
+	_envc[_envVector.size()] = NULL;
 	for (size_t i = 0; i < _envVector.size(); ++i)
 	{
 		_envc[i] = new char[_envVector[i].length() + 1];
@@ -267,7 +295,7 @@ int Cgi::_checkPathExtension(const std::string &ext, const std::string &interpre
 {
 	std::vector<std::string> extVector = split(interpreter, "/");
 	for (size_t i = 0; i < extVector.size(); ++i)
-		if (i == extVector.size() - 1 && ((extVector[i] == "nodejs" && ext == ".py") || (extVector[i] == "python3" && ext == ".py")))
+		if (i == extVector.size() - 1 && ((extVector[i] == "nodejs" && ext == ".js") || (extVector[i] == "python3" && ext == ".py")))
 			return 1;
 	return 0;
 }
@@ -298,8 +326,14 @@ void Cgi::_printEnv()
 
 Cgi::~Cgi()
 {
-	for (size_t i = 0; i < _envVector.size(); ++i)
-		delete[] _envc[i];
-	delete[] _envc;
+	if (_envc != NULL && _envc[0] != NULL)
+	{
+		for (size_t i = 0; i < _envVector.size(); ++i)
+			delete[] _envc[i];
+		delete[] _envc;
+	}
+	else if (_envc != NULL)
+		delete[] _envc;
+
 }
 

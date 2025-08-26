@@ -374,7 +374,7 @@ bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
             Cgi handlecgi(routing_result, request, response);
             if (handlecgi.getvalidChecker() == 1)
             if (!handlecgi._executeScript(routing_result, request, response))
-            print_log( "Failed to execute CGI script." , DiSPLAY_LOG);
+                print_log( "Failed to execute CGI script." , DiSPLAY_LOG);
         }
         else if (request.method == "GET") {
             handleGETRequest(response, request, config, connections);
