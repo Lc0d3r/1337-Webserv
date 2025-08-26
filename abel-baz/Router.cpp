@@ -16,7 +16,7 @@ std::string RoutingResult::getScriptFilename() const
 std::string RoutingResult::getDocumentRoot() const
 {
     if (server && !server->locations.empty())
-        return server->locations[0].root; // Assuming the first location is the default one
+        return server->locations[0].root;
     return "";
 }
 
@@ -26,9 +26,8 @@ std::string RoutingResult::getServerName() const
         return server->server_name[0];
     return "localhost";
 }
-std::vector<std::string> RoutingResult::getExtension() const // had lpart rah edited
+std::vector<std::string> RoutingResult::getExtension() const
 {
-    // Return all extensions joined by comma, or empty string if none
     if (!location->cgi_extension.empty()) {
         return location->cgi_extension;
     }
@@ -36,57 +35,57 @@ std::vector<std::string> RoutingResult::getExtension() const // had lpart rah ed
 }
 
 
-
-
 // DO: Match a server block based on host and port
-// RETURN: the first server block that matches the port, or the first server block matches the host if no port match is found
-const ServerConfig& matchServer(const Config& config, const std::string& host, int port, errorType& error) {
-    const static ServerConfig emptyServer; // Static to avoid returning a dangling reference
+// RETURN: the first server block that matches the port, or the first server
+// block matches the host if no port match is found
+const ServerConfig& matchServer(const Config& config, const std::string& host,
+        int port, errorType& error, const std::string& server_ip) {
+    const static ServerConfig emptyServer;
     const ServerConfig* fallback = NULL;
 
     for (size_t i = 0; i < config.servers.size(); ++i)
     {
         const ServerConfig& server = config.servers[i];
 
-        // Check all listen blocks for port match
         for (size_t j = 0; j < server.listens.size(); ++j)
         {
-            if (server.listens[j].listen_port == port)
+            if (server.listens[j].listen_port == port
+                && server.listens[j].listen_host == server_ip)
             {
-                // Save first match as fallback
+
                 if (!fallback)
                 {
                     error = NO_ERROR;
                     fallback = &server;
                 }
 
-                // Now check server_name match
-                for (size_t k = 0; k < server.listens.size(); ++k)
+                for (size_t k = 0; k < server.server_name.size(); ++k)
                 {
-                    if (server.listens[k].listen_host == host)
+                    if (server.server_name[k] == host)
                     {
                         error = NO_ERROR;
-                        return server; // Exact match
+                        return server;
                     }
                 }
             }
         }
     }
-
     if (fallback)
         return *fallback;
     else
     {
         error = SERVER_NOT_FOUND;
-        return emptyServer; // Return an empty ServerConfig on error
+        return emptyServer;
     }
 }
 
 // DO: This function matches the longest location path for a given URI in a server block.
 // RETURN: the location block that matches the URI
-const LocationConfig& matchLocation(const ServerConfig& server, const std::string& uri, errorType& error) {
+const LocationConfig& matchLocation(const ServerConfig& server,
+    const std::string& uri, errorType& error)
+{
     
-     static const LocationConfig emptyLocation; // Static to avoid returning a dangling reference
+    static const LocationConfig emptyLocation;
     const LocationConfig *match = NULL;
     size_t longest = 0;
 
@@ -95,19 +94,8 @@ const LocationConfig& matchLocation(const ServerConfig& server, const std::strin
         const LocationConfig& loc = server.locations[i];
         const std::string& path = loc.path;
 
-        if (uri.compare(0, path.size(), path) == 0) //path.size() is the second argument, and its for str1 not str2 as well as first argument
+        if (uri.compare(0, path.size(), path) == 0)
         {
-            // the root location always matches everything -> for the path
-            // & checking for full match -> for both
-            // Check valid path boundary (e.g. /images should not match /imageshack) if path is a part of uri we have to check if it end with /
-                // with a slash else it's a full match
-            /*
-                there is three cases:
-                1. path is exactly the same as uri (e.g. /images == /images)
-                2. path is a prefix of uri and uri continues with a slash (e.g. /images == /images/...)
-                    path is a prefix of uri and uri continues with another character or less character (e.g. /images == /imageshack or /image)
-                3. or the path is a root location (e.g. / == /images)
-            */
             if (path == "/" || uri.size() == path.size() || uri[path.size()] == '/')
             {
                 if (path.size() > longest)
@@ -122,70 +110,57 @@ const LocationConfig& matchLocation(const ServerConfig& server, const std::strin
     if (!match)
     {
         error = LOCATION_NOT_FOUND;
-        return emptyLocation; // Return an empty LocationConfig on error
+        return emptyLocation;
     }
 
     return *match;
 }
-
 
 // DO: This function gives you the physical file path on disk based on the config and URI.
 // RETURN: root + (uri - location.path)
 std::string finalPath(const LocationConfig& location, const std::string& uri) {
     const std::string& root = location.root;
     const std::string& locPath = location.path;
-    // Step 1: remove the location path from the URI
-        // substr(index to start from, length of the substring)
     std::string remain = uri.substr(locPath.length());
 
-    // Step 2: avoid double slashes
-    if (root[root.size() - 1] == '/' && !remain.empty() && remain[0] == '/')
+    if (!remain.empty() && root[root.size() - 1] == '/' && remain[0] == '/')
         remain = remain.substr(1);
-    else
+    else if (!remain.empty() && root[root.size() - 1] != '/' && remain[0] != '/')
         remain = "/" + remain;
-    // Step 3: combine root + remain
     return root + remain;
 }
 
-
-
-// Server looks for: /www/docs/index.html
-// If it doesn’t exist, but autoindex is on → generate a listing
-// If it doesn’t exist and autoindex is off → return 404
-
-// Check if a path is a directory
 bool isDirectory(const std::string& path) {
-    // data type for file status
     struct stat s;
-    // if path exists and s filled ir return 0
-    // S_ISDIR checks if the file is a directory through .st_mode member
-        // and return true if it is a directory
-    //st_mode Field in struct stat that encodes type and permissions
     return (stat(path.c_str(), &s) == 0 && S_ISDIR(s.st_mode));
 }
 
-// Check if a file exists
 bool fileExists(const std::string& path) {
     struct stat s;
     return (stat(path.c_str(), &s) == 0);
 }
 
+bool isMethodAllowed(const LocationConfig& location, const std::string& method) {
+    for (size_t i = 0; i < location.methods.size(); ++i){
+        if (location.methods[i] == method)
+            return true;
+    }
+    return false;
+}
+
 // DO: This function routes a request based on the configuration, host, port, and URI.
 // RETURN: a RoutingResult containing the matched server, location, file path, and redirection
-// 📌 Summary :
-    // we have many cases like:
-    // 1. if the location has a redirection, we return the redirection URL
-    // 2. if the location is a directory and has an index file, we return the index file path after checks
-    // 3. if the location is a directory and has autoindex enabled, we return the directory path and set use_autoindex to true
-    // 4. if the location is a file, we check if it exists and is accessible, then return the file path
 RoutingResult routingResult(const Config& config, const std::string& host,
-    int port, const std::string& uri, const std::string& method, errorType& error)
-    {
-        const ServerConfig& server = matchServer(config, host, port, error);
-        const LocationConfig& location = matchLocation(server, uri, error);
+    int port, const std::string& uri, const std::string& method,
+    errorType& error, const std::string& server_ip)
+{
+    std::cout << "before matching server" << std::endl;
+    const ServerConfig& server = matchServer(config, host, port, error, server_ip);
+    std::cout << "after matching server" << std::endl;
+    const LocationConfig& location = matchLocation(server, uri, error);
         if (error != NO_ERROR)
         {
-            return RoutingResult(); // Return an empty RoutingResult on error
+            return RoutingResult();
         }
         
         RoutingResult result;
@@ -209,13 +184,16 @@ RoutingResult routingResult(const Config& config, const std::string& host,
     {
         result.file_path = finalPath(location, uri);
         result.is_redirect = false;
-        // std::cout << "is dir ==> " << isDirectory(result.file_path) << std::endl;
         if (isDirectory(result.file_path))
         {
-            // TODO : remove this and always check if the file exists
             std::string index_path;
             if (!location.index.empty())
-                index_path = result.file_path + "/" + location.index;
+            {
+                if (location.index[0] == '/')
+                    index_path = result.file_path + location.index;
+                else
+                    index_path = result.file_path + "/" + location.index;
+            }
             else
                 index_path = result.file_path + "/index.html";
 
@@ -229,8 +207,6 @@ RoutingResult routingResult(const Config& config, const std::string& host,
             }
 
 
-            // Either index was empty or the index file was missing
-            // it will never reach here cuz index always exists
             if (location.autoindex)
             {
                 result.use_autoindex = true;
@@ -240,12 +216,10 @@ RoutingResult routingResult(const Config& config, const std::string& host,
                 error = NO_INDEX_FILE;
             }
         }
-        // if the file does not exist here that means that's ur prblm you provided the wrong path
         else
         {
             result.use_autoindex = false;
-            result.is_directory = false; // It's a file, not a directory
-            // std::cout << "result.file_path ===> " << result.file_path << std::endl;
+            result.is_directory = false; 
             if (!fileExists(result.file_path)){
                 error = FILE_NOT_FOUND;
             }
@@ -259,12 +233,4 @@ RoutingResult routingResult(const Config& config, const std::string& host,
 
 
     return result;
-}
-
-bool isMethodAllowed(const LocationConfig& location, const std::string& method) {
-    for (size_t i = 0; i < location.methods.size(); ++i){
-        if (location.methods[i] == method)
-            return true;
-    }
-    return false;
 }

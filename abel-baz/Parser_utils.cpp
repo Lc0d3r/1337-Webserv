@@ -14,7 +14,7 @@ void Parser::parseListen(ServerConfig& server) {
     hp.listen_host = val.text.substr(0, colon);
     hp.listen_port = std::atoi(val.text.substr(colon + 1).c_str());
 
-    if (hp.listen_port < 1 || hp.listen_port > 65535)  // 65535 is max port number
+    if (hp.listen_port < 1 || hp.listen_port > 65535)  // max port number
         throw std::runtime_error("Port must be between 1 and 65535");
 
     if (hp.listen_host.empty() || hp.listen_port == 0)
@@ -41,9 +41,10 @@ void Parser::parseServerName(ServerConfig& server) {
 }
 
 void Parser::parseLocation(ServerConfig& server) {
-    LocationConfig loc;
     
+    LocationConfig loc;
     Token path = get();
+
     if (path.type != VALUE)
         throw std::runtime_error("Expected value for location path");
 
@@ -106,7 +107,6 @@ void Parser::parseLocation(ServerConfig& server) {
 }
 
 void Parser::parseErrorPage(ServerConfig& server) {
-    // Step 1: Get the error code (should be numeric)
     Token codeToken = get();
     if (codeToken.type != VALUE)
         throw std::runtime_error("Expected status code for error_page");
@@ -127,7 +127,7 @@ void Parser::parseErrorPage(ServerConfig& server) {
         char buffer[1024];
         if (!getcwd(buffer, sizeof(buffer)))
             throw std::runtime_error("Failed to get current working directory for error_page path");
-        fileToken.text = std::string(buffer) + "/" + fileToken.text; // Make absolute path
+        fileToken.text = std::string(buffer) + "/" + fileToken.text; // absolute path
     }
 
     // Step 3: Store in map
@@ -174,8 +174,8 @@ void Parser::parseKeepAlive(ServerConfig& server) {
     }
 
     int timeout = std::atoi(val.text.c_str());
-    if (timeout < 0)
-        throw std::runtime_error("keep_alive_timeout must not be negative");
+    if (timeout < 0 || timeout > 3600) // more than 1 hour
+        throw std::runtime_error("keep_alive_timeout must not be negative or more than 1 hour");
 
     server.keep_alive_timeout = timeout;
 

@@ -47,7 +47,7 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
             // check if the fd client_fd timeout
             if (connections.count(pollfds[i].fd) &&
                 connections[pollfds[i].fd].type == CONNECTED &&
-                time(NULL) - connections[pollfds[i].fd].last_active > config.getKeepAliveTimeout("", connections[pollfds[i].fd].portToConnect)) {
+                time(NULL) - connections[pollfds[i].fd].last_active > config.getKeepAliveTimeout("", connections[pollfds[i].fd].portToConnect, connections[pollfds[i].fd].hostToConnect)) {
                 print_log( "Client timed out, closing connection.", DiSPLAY_LOG);
                 close(pollfds[i].fd);
                 connections.erase(pollfds[i].fd);
@@ -83,7 +83,7 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                 }
                 else if (connections[pollfds[i].fd].type == CONNECTED) {
                     client_fd = pollfds[i].fd;
-                    connections[client_fd].request.error_pages = config.getErrorPages(connections[pollfds[i].fd].hostToConnect, connections[pollfds[i].fd].portToConnect);
+                    connections[client_fd].request.error_pages = config.getErrorPages("", connections[client_fd].portToConnect, connections[client_fd].hostToConnect);
                     print_log( "Reading request comming to server: " + connections[client_fd].server_ip + ":" + connections[client_fd].server_port , DiSPLAY_LOG);
 
                     // read data from the client
@@ -113,6 +113,12 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                     removeQueryString(connections[pollfds[i].fd].request);
                     print_log( "Request with method: " + connections[pollfds[i].fd].request.method + " and path: " + connections[pollfds[i].fd].request.path_without_query + " received." , DiSPLAY_LOG);
                     // read the body
+                    std::map<std::string, std::string> temp = connections[pollfds[i].fd].request.headers;
+                    for (int i = 0; i < (int)connections[pollfds[i].fd].request.headers.size(); i++) {
+                        std::cout << "Header: " << connections[pollfds[i].fd].request.headers.begin()->first << " : " << connections[pollfds[i].fd].request.headers.begin()->second << std::endl;
+                        connections[pollfds[i].fd].request.headers.erase(connections[pollfds[i].fd].request.headers.begin());
+                    }
+                    // exit(0);
                     std::string str_body;
                     if (!readBody(connections[pollfds[i].fd].request, str_body, client_fd))
                     {
@@ -136,7 +142,8 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                         --i;
                         continue; // no body to read or body size exceeds limit
                     }
-                    if (!connections[pollfds[i].fd].request.body.empty() && connections[pollfds[i].fd].request.body.size() >= config.getMaxBodySize("", connections[pollfds[i].fd].portToConnect)) {
+                    // print headers 
+                    if (!connections[pollfds[i].fd].request.body.empty() && connections[pollfds[i].fd].request.body.size() >= config.getMaxBodySize("", connections[pollfds[i].fd].portToConnect, connections[pollfds[i].fd].hostToConnect)) {
                         HttpResponse response;
                         if (!get_error_page(response, 413, connections[pollfds[i].fd].request, "Payload Too Large")) {
                             response.statusCode = 413; // Payload Too Large

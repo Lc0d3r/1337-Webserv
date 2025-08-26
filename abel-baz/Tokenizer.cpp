@@ -22,13 +22,13 @@ Tokenizer::Tokenizer(const std::string& filePath)
     if (!file)
         throw std::runtime_error("Failed to open the file");
 
-    std::ostringstream stream; //strin version of std::cout
+    std::ostringstream stream;
     std::string line;
     
     while (std::getline(file, line))
-        stream << line << '\n'; //<< overloaded in stream class
-                                //std::cout << "Hello" << '\n';
-    _content = stream.str(); //Give me all the text I’ve added so far, as one full string.
+        stream << line << '\n';
+    
+    _content = stream.str();
 }
 
 std::vector<Token> Tokenizer::tokenize()

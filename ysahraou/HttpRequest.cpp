@@ -203,6 +203,12 @@ int parse_req(std::string request_data, int socket_fd, HttpRequest &request)
     else {
         request.is_keep_alive = true;
     }
+
+    // print headers
+    std::map<std::string, std::string> temp = request.headers;
+    for (std::map<std::string, std::string>::iterator it = temp.begin(); it != temp.end(); ++it) {
+        std::cout << "Header: " << it->first << " : " << it->second << std::endl;
+    }   
     return 0;
 }
 

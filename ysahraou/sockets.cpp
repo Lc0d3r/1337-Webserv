@@ -63,13 +63,28 @@ std::string intToString(int value) {
     return oss.str();
 }
 
+bool check_listens(const std::vector<HostPort> &listens, const std::string &host, int port) {
+    for (int i = 0; i < (int)listens.size(); i++) {
+        if (listens[i].listen_host == host && listens[i].listen_port == port) {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::vector<int> initListeningSockets(const Config &config, std::map<int, ConnectionInfo> &connections) {
         int socket_fd;
+        std::vector<HostPort> listens;
         std::vector<int> listening_fds;
         for  (int i=0;i < (int)config.servers.size(); i++)
         {
             for (int j=0; j < (int)config.servers[i].listens.size(); j++)
             {
+                if (check_listens(listens, config.servers[i].listens[j].listen_host, config.servers[i].listens[j].listen_port)) {
+                    print_log("Warning: Duplicate listen directive for " + config.servers[i].listens[j].listen_host + ":" + 
+                        intToString(config.servers[i].listens[j].listen_port), DiSPLAY_LOG);
+                    continue; // Skip duplicate listens
+                }
                 socket_fd = init_Socket(AF_INET, SOCK_STREAM, 0, 
                     (char *)intToString(config.servers[i].listens[j].listen_port).c_str(),
                     (char *)config.servers[i].listens[j].listen_host.c_str());
@@ -79,6 +94,7 @@ std::vector<int> initListeningSockets(const Config &config, std::map<int, Connec
                               << config.servers[i].listens[j].listen_port << std::endl;
                     return std::vector<int>();
                 }
+                listens.push_back(config.servers[i].listens[j]);
                 // Store the connection info
                 connections[socket_fd] = ConnectionInfo(LISTENER, false);
                 connections[socket_fd].port = config.servers[i].listens[j].listen_port;

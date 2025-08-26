@@ -226,7 +226,10 @@ void handleGETRequest(HttpResponse& response, const HttpRequest& request, const 
     std::string hostname;
     splithostport(request.headers.at("Host"), hostname, port);
     errorType error = NO_ERROR;
-    RoutingResult result = routingResult(config, hostname, port, request.path_without_query, request.method, error);
+    RoutingResult result = routingResult(config, hostname, connections.portToConnect, request.path_without_query, 
+        request.method, error, connections.hostToConnect);
+    print_log("Routing result for GET request: " + result.file_path, DiSPLAY_LOG);
+    print_log("servername: " + hostname + ", port: " + intToString(connections.portToConnect) + ", ip: " + connections.hostToConnect, DiSPLAY_LOG);
     if (result.is_redirect) {
         response.statusCode = 301; // Moved Permanently
         response.statusMessage = "Moved Permanently";
@@ -365,7 +368,7 @@ bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
         return false;
     }
     splithostport(request.headers.at("Host"), hostname, port);
-    RoutingResult routing_result = routingResult(config, hostname, port, request.path_without_query, request.method, error);
+    RoutingResult routing_result = routingResult(config, hostname, connections.portToConnect, request.path_without_query, request.method, error, connections.hostToConnect);
     // check error flag 
     if (error == NO_ERROR)
     {
