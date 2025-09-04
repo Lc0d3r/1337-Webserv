@@ -154,9 +154,7 @@ RoutingResult routingResult(const Config& config, const std::string& host,
     int port, const std::string& uri, const std::string& method,
     errorType& error, const std::string& server_ip)
 {
-    std::cout << "before matching server" << std::endl;
     const ServerConfig& server = matchServer(config, host, port, error, server_ip);
-    std::cout << "after matching server" << std::endl;
     const LocationConfig& location = matchLocation(server, uri, error);
         if (error != NO_ERROR)
         {

@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+g#!/usr/bin/env node
 
 // Output HTTP headers
 console.log("<h1>Content-Type: text/html</h1>\n");

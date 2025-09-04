@@ -109,7 +109,7 @@ int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res
 			int exitStatus = WEXITSTATUS(status);
 			if (exitStatus == 1)
 			{
-					if (get_error_page(res, 500, req, "Internal Server Error")) {
+					if (!get_error_page(res, 500, req, "Internal Server Error")) {
 					res.statusCode = 500;
 					res.statusMessage = "Internal Server Error";
 					res.setTextBody("<h1>500 Internal Server Error</h1>");
@@ -124,7 +124,7 @@ int	Cgi::_executeScript(RoutingResult &serv, HttpRequest &req, HttpResponse &res
 			}
 			else if (exitStatus == 2)
 			{
-				if (get_error_page(res, 404, req, "Not Found")) {
+				if (!get_error_page(res, 404, req, "Not Found")) {
 					res.setTextBody("<h1>404 Not Found</h1>");
 					res.statusCode = 404;
 					res.statusMessage = "Not Found";

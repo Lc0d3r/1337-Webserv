@@ -151,7 +151,7 @@ int parse_req(std::string request_data, int socket_fd, HttpRequest &request)
     }
     if (http_version != "HTTP/1.1") {
         // send 505 response
-        print_log( "HTTP version not supported: " + http_version + " sending 505 HTTP Version Not Supported response.", DiSPLAY_LOG);
+        print_log( "HTTP version not supported: [" + http_version + "] sending 505 HTTP Version Not Supported response.", DiSPLAY_LOG);
         HttpResponse response;
         if (!get_error_page(response, 505, request, "HTTP Version Not Supported")) {
             response.httpVersion = "HTTP/1.1";
@@ -205,10 +205,10 @@ int parse_req(std::string request_data, int socket_fd, HttpRequest &request)
     }
 
     // print headers
-    std::map<std::string, std::string> temp = request.headers;
-    for (std::map<std::string, std::string>::iterator it = temp.begin(); it != temp.end(); ++it) {
-        std::cout << "Header: " << it->first << " : " << it->second << std::endl;
-    }   
+    // std::map<std::string, std::string> temp = request.headers;
+    // for (std::map<std::string, std::string>::iterator it = temp.begin(); it != temp.end(); ++it) {
+    //     std::cout << "Header: " << it->first << " : " << it->second << std::endl;
+    // }   
     return 0;
 }
 
