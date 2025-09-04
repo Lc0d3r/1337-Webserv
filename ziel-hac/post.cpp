@@ -77,19 +77,21 @@ int posthandler(HttpRequest *req, RoutingResult *ser, HttpResponse &res)
 				}
 				return 0;
 			}
-			res.setTextBody("<h1>uploaded successfully</h1>");
-			res.statusCode = 200;
-			res.statusMessage = "OK";
-			res.addHeader("Content-Length", intToString(res.body.size()));
-			res.addHeader("Content-Type", "text/html");
-			if (req->is_keep_alive)
-				res.addHeader("Connection", "keep-alive");
-			else 
-				res.addHeader("Connection", "close");
-			if (!req->getSessionId().empty()) {
-				res.addHeader("set-Cookie", "session_id=" + req->getSessionId());
-			}else
-				res.addHeader("set-Cookie", "session_id=" + res.setSessionId());
+			if (!get_error_page(res, 200, *req, "uploaded successfully")) {
+				res.setTextBody("<h1>uploaded successfully</h1>");
+				res.statusCode = 200;
+				res.statusMessage = "OK";
+				res.addHeader("Content-Length", intToString(res.body.size()));
+				res.addHeader("Content-Type", "text/html");
+				if (req->is_keep_alive)
+					res.addHeader("Connection", "keep-alive");
+				else 
+					res.addHeader("Connection", "close");
+				if (!req->getSessionId().empty()) {
+					res.addHeader("set-Cookie", "session_id=" + req->getSessionId());
+				}else
+					res.addHeader("set-Cookie", "session_id=" + res.setSessionId());
+			}
 		}
 	else if (req->getContentType() == "multipart/form-data")
     {

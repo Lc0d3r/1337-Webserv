@@ -448,7 +448,16 @@ bool response(int client_fd, HttpRequest &request, Config &config, ConnectionInf
         }
     }
     print_log( "Response prepared with status code: " + intToString(response.statusCode) + " and message: " + response.statusMessage , DiSPLAY_LOG);
-
+    if (response.statusCode == 200) {
+        if (!request.getSessionId().empty()) {
+            response.addHeader("set-Cookie", "session_id=" + request.getSessionId());
+            print_log("Session ID get in request: " + request.getSessionId(), DiSPLAY_LOG);
+        }
+        else {
+            response.addHeader("set-Cookie", "session_id=" + response.setSessionId());
+            print_log("Session ID set in response: " + response.setSessionId(), DiSPLAY_LOG);
+        }
+    }
     // sending the response headers
     write(client_fd , response.toString().c_str() , strlen(response.toString().c_str()));
     // sending the response body

@@ -94,6 +94,7 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                         if (parse_req(request_data, client_fd, connections[pollfds[i].fd].request) )
                         {
                             close(client_fd);
+                            print_log( "Error parsing request, closing connection." , DiSPLAY_LOG);
                             connections.erase(client_fd);
                             pollfds.erase(pollfds.begin() + i);
                             --i;
@@ -113,12 +114,6 @@ void loop(std::map <int, ConnectionInfo> &connections, Config &config)
                     removeQueryString(connections[pollfds[i].fd].request);
                     print_log( "Request with method: " + connections[pollfds[i].fd].request.method + " and path: " + connections[pollfds[i].fd].request.path_without_query + " received." , DiSPLAY_LOG);
                     // read the body
-                    std::map<std::string, std::string> temp = connections[pollfds[i].fd].request.headers;
-                    for (int i = 0; i < (int)connections[pollfds[i].fd].request.headers.size(); i++) {
-                        std::cout << "Header: " << connections[pollfds[i].fd].request.headers.begin()->first << " : " << connections[pollfds[i].fd].request.headers.begin()->second << std::endl;
-                        connections[pollfds[i].fd].request.headers.erase(connections[pollfds[i].fd].request.headers.begin());
-                    }
-                    // exit(0);
                     std::string str_body;
                     if (!readBody(connections[pollfds[i].fd].request, str_body, client_fd))
                     {
