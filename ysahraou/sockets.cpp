@@ -47,7 +47,7 @@ int init_Socket(int domain, int type, int protocol, char *port, char *interface)
     // Bind to the address
     if (bind(socket_fd, res->ai_addr, res->ai_addrlen) == -1) {
         perror("bind");
-        std::cerr << "Failed to bind to " << interface << ":" << port << std::endl;
+        print_log("Failed to bind to " + std::string(interface) + ":" + std::string(port), DiSPLAY_LOG);
         close(socket_fd);
         freeaddrinfo(res);
         return -1;
@@ -89,9 +89,8 @@ std::vector<int> initListeningSockets(const Config &config, std::map<int, Connec
                     (char *)intToString(config.servers[i].listens[j].listen_port).c_str(),
                     (char *)config.servers[i].listens[j].listen_host.c_str());
                 if (socket_fd < 0) {
-                    std::cerr << "Failed to create socket for "
-                              << config.servers[i].listens[j].listen_host << ":"
-                              << config.servers[i].listens[j].listen_port << std::endl;
+                    print_log("Failed to initialize socket for " + config.servers[i].listens[j].listen_host + ":" + 
+                        intToString(config.servers[i].listens[j].listen_port), DiSPLAY_LOG);
                     return std::vector<int>();
                 }
                 listens.push_back(config.servers[i].listens[j]);

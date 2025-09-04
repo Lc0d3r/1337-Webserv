@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
         std::map<int, ConnectionInfo> connections;
         std::vector<int> listening_sockets = initListeningSockets(config, connections);
         if (listening_sockets.empty()) {
-            std::cerr << "No listening sockets initialized." << std::endl;
+            print_log("No listening sockets initialized. Exiting.", DiSPLAY_LOG);
             return 1;
         }
         //loop
